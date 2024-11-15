@@ -1,0 +1,13 @@
+prefix=/home/yang//wasm/gnupg-2.4.6/deps/prefix
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+api_version=1
+host=wasm32-unknown-none
+
+Name: npth
+Description: New GNU Portable Threads Library
+Version: 1.8
+Libs: -L${libdir} -lnpth  
+Cflags: -I${includedir} 
+URL: https://www.gnupg.org/software/npth/index.html

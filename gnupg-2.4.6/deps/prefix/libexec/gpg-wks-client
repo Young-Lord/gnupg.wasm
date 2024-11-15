@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "/home/yang/wasm/gnupg-2.4.6/deps/prefix/bin/gpg-wks-client" "$@"

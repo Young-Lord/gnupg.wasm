@@ -1,0 +1,11 @@
+/emsdk
+/result
+*.log
+*.wasm
+*.so
+*.o
+*.lo
+*.a
+*.la
+
+.deps
