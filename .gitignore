@@ -10,5 +10,5 @@
 
 .deps
 libtool
-bfg-*.jar
+bfg*.jar
 ..bfg-report/
