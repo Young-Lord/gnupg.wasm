@@ -81,9 +81,6 @@
 #endif
 
 #include <emscripten.h>
-EMSCRIPTEN_KEEPALIVE void myFunction(int argc, char ** argv) {
-    printf("MyFunction Called\n");
-}
 
 enum cmd_and_opt_values
   {
@@ -2368,11 +2365,6 @@ gpg_deinit_default_ctrl (ctrl_t ctrl)
 EMSCRIPTEN_KEEPALIVE int
 gpg_cli_main (int argc, char **argv)
 {
-    printf("hello!!!!!!!!!!!\n");
-    printf("count=%d, ptr=%p\n", argc, argv);
-    for(int i=0;i<argc;++i){
-        printf("    -(%s)   ", argv[i]);
-    }
     gpgrt_argparse_t pargs;
     IOBUF a;
     int rc=0;
@@ -5577,12 +5569,7 @@ g10_exit( int rc )
   gnupg_block_all_signals ();
   emergency_cleanup ();
 
-  // exit (rc);
-  // https://github.com/ffmpegwasm/ffmpeg.wasm/blob/main/src/fftools/cmdutils.c#L94
-  EM_ASM({
-    Module.ret = $0;
-  }, rc);
-  abort();
+  exit (rc);
 }
 
 
