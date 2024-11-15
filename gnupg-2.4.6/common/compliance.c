@@ -80,7 +80,7 @@ get_compliance_cache (enum gnupg_compliance_mode compliance, int for_rng)
 void
 gnupg_initialize_compliance (int gnupg_module_name)
 {
-  log_assert (! initialized);
+  if(initialized) return;
 
   /* We accept both OpenPGP-style and gcrypt-style algorithm ids.
    * Assert that they are compatible. At some places gcrypt ids are

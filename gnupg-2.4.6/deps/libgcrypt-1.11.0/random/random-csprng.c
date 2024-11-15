@@ -607,8 +607,7 @@ mix_pool(unsigned char *pool)
 void
 _gcry_rngcsprng_set_seed_file (const char *name)
 {
-  if (seed_file_name)
-    BUG ();
+  if (seed_file_name) return;
   seed_file_name = xstrdup (name);
 }
 

@@ -7,8 +7,11 @@
 *.lo
 *.a
 *.la
+*.map
 
 .deps
 libtool
 bfg*.jar
 ..bfg-report/
+hello.js
+hello.html

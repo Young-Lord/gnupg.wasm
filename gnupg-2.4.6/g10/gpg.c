@@ -2365,6 +2365,7 @@ gpg_deinit_default_ctrl (ctrl_t ctrl)
 EMSCRIPTEN_KEEPALIVE int
 gpg_cli_main (int argc, char **argv)
 {
+    log_get_errorcount(1);
     gpgrt_argparse_t pargs;
     IOBUF a;
     int rc=0;
@@ -5566,7 +5567,7 @@ g10_exit( int rc )
   if (opt.debug)
     gcry_control (GCRYCTL_DUMP_SECMEM_STATS );
 
-  gnupg_block_all_signals ();
+  // gnupg_block_all_signals ();
   emergency_cleanup ();
 
   exit (rc);

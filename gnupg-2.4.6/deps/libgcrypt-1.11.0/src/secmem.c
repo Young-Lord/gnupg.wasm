@@ -372,8 +372,8 @@ init_pool (pooldesc_t *pool, size_t n)
 
   pool->size = n;
 
-  if (disable_secmem)
-    log_bug ("secure memory is disabled");
+  // if (disable_secmem)
+  //   log_bug ("secure memory is disabled");
 
 
 #if HAVE_MMAP
@@ -541,8 +541,8 @@ _gcry_secmem_init_internal (size_t n)
 	  init_pool (pool, n);
 	  lock_pool_pages (pool->mem, n);
 	}
-      else
-	log_error ("Oops, secure memory pool already initialized\n");
+      // else
+	// log_error ("Oops, secure memory pool already initialized\n");
     }
 }
 
