@@ -9,3 +9,6 @@
 *.la
 
 .deps
+libtool
+bfg-*.jar
+..bfg-report/
