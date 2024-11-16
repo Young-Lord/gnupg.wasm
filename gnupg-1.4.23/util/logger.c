@@ -223,6 +223,7 @@ g10_log_fatal( const char *fmt, ... )
 #ifdef __riscos__
     fflush( logfp );
 #endif /* __riscos__ */
+
     exit(2);
 }
 

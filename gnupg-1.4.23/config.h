@@ -321,10 +321,10 @@
 #define HAVE_MLOCK 1
 
 /* Define to 1 if you have the `mmap' function. */
-#define HAVE_MMAP 1
+// #define HAVE_MMAP 1
 
 /* Define to 1 if you have the `munmap' function. */
-#define HAVE_MUNMAP 1
+// #define HAVE_MUNMAP 1
 
 /* Define to 1 if you have the `newlocale' function. */
 #define HAVE_NEWLOCALE 1

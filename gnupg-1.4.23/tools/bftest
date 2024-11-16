@@ -1202,10 +1202,7 @@ var tempI64;
       return Math.ceil(size / alignment) * alignment;
     };
   var mmapAlloc = (size) => {
-      size = alignMemory(size, 65536);
-      var ptr = _emscripten_builtin_memalign(65536, size);
-      if (ptr) zeroMemory(ptr, size);
-      return ptr;
+      abort();
     };
   var MEMFS = {
   ops_table:null,
@@ -3477,52 +3474,6 @@ var tempI64;
       runtimeKeepaliveCounter = 0;
     };
 
-  
-  
-  
-  
-  
-  var convertI32PairToI53Checked = (lo, hi) => {
-      return ((hi + 0x200000) >>> 0 < 0x400001 - !!lo) ? (lo >>> 0) + hi * 4294967296 : NaN;
-    };
-  function __mmap_js(len,prot,flags,fd,offset_low, offset_high,allocated,addr) {
-    var offset = convertI32PairToI53Checked(offset_low, offset_high);
-  
-    
-  try {
-  
-      if (isNaN(offset)) return 61;
-      var stream = SYSCALLS.getStreamFromFD(fd);
-      var res = FS.mmap(stream, len, offset, prot, flags);
-      var ptr = res.ptr;
-      HEAP32[((allocated)>>2)] = res.allocated;
-      HEAPU32[((addr)>>2)] = ptr;
-      return 0;
-    } catch (e) {
-    if (typeof FS == 'undefined' || !(e.name === 'ErrnoError')) throw e;
-    return -e.errno;
-  }
-  ;
-  }
-
-  
-  function __munmap_js(addr,len,prot,flags,fd,offset_low, offset_high) {
-    var offset = convertI32PairToI53Checked(offset_low, offset_high);
-  
-    
-  try {
-  
-      var stream = SYSCALLS.getStreamFromFD(fd);
-      if (prot & 2) {
-        SYSCALLS.doMsync(addr, stream, len, flags, offset);
-      }
-    } catch (e) {
-    if (typeof FS == 'undefined' || !(e.name === 'ErrnoError')) throw e;
-    return -e.errno;
-  }
-  ;
-  }
-
   var _emscripten_date_now = () => Date.now();
 
   var getHeapMax = () =>
@@ -3666,6 +3617,9 @@ var tempI64;
   }
 
   
+  var convertI32PairToI53Checked = (lo, hi) => {
+      return ((hi + 0x200000) >>> 0 < 0x400001 - !!lo) ? (lo >>> 0) + hi * 4294967296 : NaN;
+    };
   function _fd_seek(fd,offset_low, offset_high,whence,newOffset) {
     var offset = convertI32PairToI53Checked(offset_low, offset_high);
   
@@ -3775,10 +3729,6 @@ var wasmImports = {
   /** @export */
   _emscripten_runtime_keepalive_clear: __emscripten_runtime_keepalive_clear,
   /** @export */
-  _mmap_js: __mmap_js,
-  /** @export */
-  _munmap_js: __munmap_js,
-  /** @export */
   emscripten_date_now: _emscripten_date_now,
   /** @export */
   emscripten_resize_heap: _emscripten_resize_heap,
@@ -3802,7 +3752,6 @@ var wasmImports = {
 var wasmExports = createWasm();
 var ___wasm_call_ctors = () => (___wasm_call_ctors = wasmExports['__wasm_call_ctors'])();
 var _main = Module['_main'] = (a0, a1) => (_main = Module['_main'] = wasmExports['__main_argc_argv'])(a0, a1);
-var _emscripten_builtin_memalign = (a0, a1) => (_emscripten_builtin_memalign = wasmExports['emscripten_builtin_memalign'])(a0, a1);
 var __emscripten_tempret_set = (a0) => (__emscripten_tempret_set = wasmExports['_emscripten_tempret_set'])(a0);
 var __emscripten_stack_restore = (a0) => (__emscripten_stack_restore = wasmExports['_emscripten_stack_restore'])(a0);
 var __emscripten_stack_alloc = (a0) => (__emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc'])(a0);

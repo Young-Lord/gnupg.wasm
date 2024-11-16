@@ -1,3 +1,11 @@
+
+var gpg = (() => {
+  var _scriptName = typeof document != 'undefined' ? document.currentScript?.src : undefined;
+  if (typeof __filename != 'undefined') _scriptName = _scriptName || __filename;
+  return (
+function(moduleArg = {}) {
+  var moduleRtn;
+
 // include: shell.js
 // The Module object: Our interface to the outside world. We import
 // and export values on it. There are various ways Module can be used:
@@ -12,7 +20,14 @@
 // after the generated code, you will need to define   var Module = {};
 // before the code. Then that object will be used in the code, and you
 // can continue to use Module afterwards as well.
-var Module = typeof Module != 'undefined' ? Module : {};
+var Module = moduleArg;
+
+// Set up the promise that indicates the Module is initialized
+var readyPromiseResolve, readyPromiseReject;
+var readyPromise = new Promise((resolve, reject) => {
+  readyPromiseResolve = resolve;
+  readyPromiseReject = reject;
+});
 
 // Determine the runtime environment we are in. You can customize this by
 // setting the ENVIRONMENT setting at compile time (see settings.js).
@@ -35,6 +50,64 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
+// include: /home/yang/wasm/gnupg-1.4.23/g10/bind.js
+// https://github.com/ffmpegwasm/ffmpeg.wasm/blob/main/src/bind/ffmpeg/bind.js
+
+const NULL = 0;
+const SIZE_I32 = Uint32Array.BYTES_PER_ELEMENT;
+const DEFAULT_ARGS = ["gpg"];
+
+Module["NULL"] = NULL;
+Module["SIZE_I32"] = SIZE_I32;
+Module["DEFAULT_ARGS"] = DEFAULT_ARGS;
+
+Module["ret"] = -1;
+
+function stringToPtr(str) {
+  const len = Module["lengthBytesUTF8"](str) + 1;
+  const ptr = Module["_malloc"](len);
+  Module["stringToUTF8"](str, ptr, len);
+
+  return ptr;
+}
+
+function stringsToPtr(strs) {
+  const len = strs.length;
+  const ptr = Module["_malloc"](len * SIZE_I32);
+  for (let i = 0; i < len; i++) {
+    Module["setValue"](ptr + SIZE_I32 * i, stringToPtr(strs[i]), "i32");
+  }
+
+  return ptr;
+}
+
+function exec(args) {
+  const final_args = [...Module["DEFAULT_ARGS"], ...args];
+  try {
+    Module["_gpg_cli_main"](final_args.length, stringsToPtr(final_args));
+  } catch (e) {
+    if (e.name === "ExitStatus") {
+      //   if (e.status === 0) {
+      //     return 0;
+      //   } else {
+      //     throw e;
+      //   }
+      return e.status;
+    } else {
+      throw e;
+    }
+  }
+}
+
+function reset() {
+  Module["ret"] = -1;
+}
+
+Module["stringToPtr"] = stringToPtr;
+Module["stringsToPtr"] = stringsToPtr;
+Module["exec"] = exec;
+Module["reset"] = reset;
+// end include: /home/yang/wasm/gnupg-1.4.23/g10/bind.js
 
 
 // Sometimes an existing Module object exists with properties
@@ -97,9 +170,7 @@ readAsync = (filename, binary = true) => {
 
   arguments_ = process.argv.slice(2);
 
-  if (typeof module != 'undefined') {
-    module['exports'] = Module;
-  }
+  // MODULARIZE will export the module in the proper place outside, we don't need to export here
 
   quit_ = (status, toThrow) => {
     process.exitCode = status;
@@ -116,6 +187,11 @@ if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
     scriptDirectory = self.location.href;
   } else if (typeof document != 'undefined' && document.currentScript) { // web
     scriptDirectory = document.currentScript.src;
+  }
+  // When MODULARIZE, this JS may be executed later, after document.currentScript
+  // is gone, so we saved it, and we use it here instead of any other info.
+  if (_scriptName) {
+    scriptDirectory = _scriptName;
   }
   // blob urls look like blob:http://site.com/etc/etc and we cannot infer anything from them.
   // otherwise, slice off the final part of the url to find the script directory.
@@ -412,6 +488,7 @@ function abort(what) {
   /** @suppress {checkTypes} */
   var e = new WebAssembly.RuntimeError(what);
 
+  readyPromiseReject(e);
   // Throw the error whether or not MODULARIZE is set because abort is used
   // in code paths apart from instantiation where an exception is expected
   // to be thrown when abort is called.
@@ -576,13 +653,15 @@ function createWasm() {
       return Module['instantiateWasm'](info, receiveInstance);
     } catch(e) {
       err(`Module.instantiateWasm callback failed with error: ${e}`);
-        return false;
+        // If instantiation fails, reject the module ready promise.
+        readyPromiseReject(e);
     }
   }
 
   wasmBinaryFile ??= findWasmBinary();
 
-  instantiateAsync(wasmBinary, wasmBinaryFile, info, receiveInstantiationResult);
+  // If instantiation fails, reject the module ready promise.
+  instantiateAsync(wasmBinary, wasmBinaryFile, info, receiveInstantiationResult).catch(readyPromiseReject);
   return {}; // no exports yet; we'll fill them in later
 }
 
@@ -1412,6 +1491,13 @@ var tempI64;
           return size;
         },
   write(stream, buffer, offset, length, position, canOwn) {
+          // If the buffer is located in main memory (HEAP), and if
+          // memory can grow, we can't hold on to references of the
+          // memory buffer, as they may get invalidated. That means we
+          // need to do copy its contents.
+          if (buffer.buffer === HEAP8.buffer) {
+            canOwn = false;
+          }
   
           if (!length) return 0;
           var node = stream.node;
@@ -3870,21 +3956,78 @@ var tempI64;
   var _emscripten_date_now = () => Date.now();
 
   var getHeapMax = () =>
-      HEAPU8.length;
+      // Stay one Wasm page short of 4GB: while e.g. Chrome is able to allocate
+      // full 4GB Wasm memories, the size will wrap back to 0 bytes in Wasm side
+      // for any code that deals with heap sizes, which would require special
+      // casing all heap size related code to treat 0 specially.
+      2147483648;
   var _emscripten_get_heap_max = () => getHeapMax();
 
   var _emscripten_get_now = () => performance.now();
 
   
   
-  var abortOnCannotGrowMemory = (requestedSize) => {
-      abort('OOM');
+  var growMemory = (size) => {
+      var b = wasmMemory.buffer;
+      var pages = ((size - b.byteLength + 65535) / 65536) | 0;
+      try {
+        // round size grow request up to wasm page size (fixed 64KB per spec)
+        wasmMemory.grow(pages); // .grow() takes a delta compared to the previous size
+        updateMemoryViews();
+        return 1 /*success*/;
+      } catch(e) {
+      }
+      // implicit 0 return to save code size (caller will cast "undefined" into 0
+      // anyhow)
     };
   var _emscripten_resize_heap = (requestedSize) => {
       var oldSize = HEAPU8.length;
       // With CAN_ADDRESS_2GB or MEMORY64, pointers are already unsigned.
       requestedSize >>>= 0;
-      abortOnCannotGrowMemory(requestedSize);
+      // With multithreaded builds, races can happen (another thread might increase the size
+      // in between), so return a failure, and let the caller retry.
+  
+      // Memory resize rules:
+      // 1.  Always increase heap size to at least the requested size, rounded up
+      //     to next page multiple.
+      // 2a. If MEMORY_GROWTH_LINEAR_STEP == -1, excessively resize the heap
+      //     geometrically: increase the heap size according to
+      //     MEMORY_GROWTH_GEOMETRIC_STEP factor (default +20%), At most
+      //     overreserve by MEMORY_GROWTH_GEOMETRIC_CAP bytes (default 96MB).
+      // 2b. If MEMORY_GROWTH_LINEAR_STEP != -1, excessively resize the heap
+      //     linearly: increase the heap size by at least
+      //     MEMORY_GROWTH_LINEAR_STEP bytes.
+      // 3.  Max size for the heap is capped at 2048MB-WASM_PAGE_SIZE, or by
+      //     MAXIMUM_MEMORY, or by ASAN limit, depending on which is smallest
+      // 4.  If we were unable to allocate as much memory, it may be due to
+      //     over-eager decision to excessively reserve due to (3) above.
+      //     Hence if an allocation fails, cut down on the amount of excess
+      //     growth, in an attempt to succeed to perform a smaller allocation.
+  
+      // A limit is set for how much we can grow. We should not exceed that
+      // (the wasm binary specifies it, so if we tried, we'd fail anyhow).
+      var maxHeapSize = getHeapMax();
+      if (requestedSize > maxHeapSize) {
+        return false;
+      }
+  
+      // Loop through potential heap size increases. If we attempt a too eager
+      // reservation that fails, cut down on the attempted size and reserve a
+      // smaller bump instead. (max 3 times, chosen somewhat arbitrarily)
+      for (var cutDown = 1; cutDown <= 4; cutDown *= 2) {
+        var overGrownHeapSize = oldSize * (1 + 0.2 / cutDown); // ensure geometric growth
+        // but limit overreserving (default to capping at +96MB overgrowth at most)
+        overGrownHeapSize = Math.min(overGrownHeapSize, requestedSize + 100663296 );
+  
+        var newSize = Math.min(maxHeapSize, alignMemory(Math.max(requestedSize, overGrownHeapSize), 65536));
+  
+        var replacement = growMemory(newSize);
+        if (replacement) {
+  
+          return true;
+        }
+      }
+      return false;
     };
 
   var ENV = {
@@ -4108,6 +4251,90 @@ var tempI64;
   }
 
 
+
+
+
+
+
+
+  var getCFunc = (ident) => {
+      var func = Module['_' + ident]; // closure exported function
+      return func;
+    };
+  
+  var writeArrayToMemory = (array, buffer) => {
+      HEAP8.set(array, buffer);
+    };
+  
+  
+  
+  var stackAlloc = (sz) => __emscripten_stack_alloc(sz);
+  var stringToUTF8OnStack = (str) => {
+      var size = lengthBytesUTF8(str) + 1;
+      var ret = stackAlloc(size);
+      stringToUTF8(str, ret, size);
+      return ret;
+    };
+  
+  
+  
+  
+  
+    /**
+     * @param {string|null=} returnType
+     * @param {Array=} argTypes
+     * @param {Arguments|Array=} args
+     * @param {Object=} opts
+     */
+  var ccall = (ident, returnType, argTypes, args, opts) => {
+      // For fast lookup of conversion functions
+      var toC = {
+        'string': (str) => {
+          var ret = 0;
+          if (str !== null && str !== undefined && str !== 0) { // null string
+            ret = stringToUTF8OnStack(str);
+          }
+          return ret;
+        },
+        'array': (arr) => {
+          var ret = stackAlloc(arr.length);
+          writeArrayToMemory(arr, ret);
+          return ret;
+        }
+      };
+  
+      function convertReturnValue(ret) {
+        if (returnType === 'string') {
+          return UTF8ToString(ret);
+        }
+        if (returnType === 'boolean') return Boolean(ret);
+        return ret;
+      }
+  
+      var func = getCFunc(ident);
+      var cArgs = [];
+      var stack = 0;
+      if (args) {
+        for (var i = 0; i < args.length; i++) {
+          var converter = toC[argTypes[i]];
+          if (converter) {
+            if (stack === 0) stack = stackSave();
+            cArgs[i] = converter(args[i]);
+          } else {
+            cArgs[i] = args[i];
+          }
+        }
+      }
+      var ret = func(...cArgs);
+      function onDone(ret) {
+        if (stack !== 0) stackRestore(stack);
+        return convertReturnValue(ret);
+      }
+  
+      ret = onDone(ret);
+      return ret;
+    };
+
   FS.createPreloadedFile = FS_createPreloadedFile;
   FS.staticInit();
   // Set module methods based on EXPORTED_RUNTIME_METHODS
@@ -4199,6 +4426,7 @@ var wasmImports = {
 var wasmExports = createWasm();
 var ___wasm_call_ctors = () => (___wasm_call_ctors = wasmExports['__wasm_call_ctors'])();
 var _gpg_cli_main = Module['_gpg_cli_main'] = (a0, a1) => (_gpg_cli_main = Module['_gpg_cli_main'] = wasmExports['gpg_cli_main'])(a0, a1);
+var _malloc = Module['_malloc'] = (a0) => (_malloc = Module['_malloc'] = wasmExports['malloc'])(a0);
 var __emscripten_tempret_set = (a0) => (__emscripten_tempret_set = wasmExports['_emscripten_tempret_set'])(a0);
 var __emscripten_stack_restore = (a0) => (__emscripten_stack_restore = wasmExports['_emscripten_stack_restore'])(a0);
 var __emscripten_stack_alloc = (a0) => (__emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc'])(a0);
@@ -4210,7 +4438,13 @@ var dynCall_jiji = Module['dynCall_jiji'] = (a0, a1, a2, a3, a4) => (dynCall_jij
 // include: postamble.js
 // === Auto-generated postamble setup entry stuff ===
 
-
+Module['ccall'] = ccall;
+Module['setValue'] = setValue;
+Module['getValue'] = getValue;
+Module['UTF8ToString'] = UTF8ToString;
+Module['stringToUTF8'] = stringToUTF8;
+Module['lengthBytesUTF8'] = lengthBytesUTF8;
+Module['FS'] = FS;
 
 
 var calledRun;
@@ -4245,6 +4479,7 @@ function run() {
 
     initRuntime();
 
+    readyPromiseResolve(Module);
     Module['onRuntimeInitialized']?.();
 
     postRun();
@@ -4273,3 +4508,24 @@ run();
 
 // end include: postamble.js
 
+// include: postamble_modularize.js
+// In MODULARIZE mode we wrap the generated code in a factory function
+// and return either the Module itself, or a promise of the module.
+//
+// We assign to the `moduleRtn` global here and configure closure to see
+// this as and extern so it won't get minified.
+
+moduleRtn = readyPromise;
+
+// end include: postamble_modularize.js
+
+
+
+  return moduleRtn;
+}
+);
+})();
+if (typeof exports === 'object' && typeof module === 'object')
+  module.exports = gpg;
+else if (typeof define === 'function' && define['amd'])
+  define([], () => gpg);

@@ -76,6 +76,9 @@
 #endif
 
 
+#include <emscripten.h>
+
+
 enum cmd_and_opt_values
   {
     aNull = 0,
@@ -1809,9 +1812,10 @@ get_default_configname (void)
 
 
 
-int
-main (int argc, char **argv )
+EMSCRIPTEN_KEEPALIVE int
+gpg_cli_main (int argc, char **argv)
 {
+    log_get_errorcount(1); // clear previous errors
     ARGPARSE_ARGS pargs;
     IOBUF a;
     int rc=0;
@@ -2914,7 +2918,8 @@ main (int argc, char **argv )
     }
     xfree( configname ); configname = NULL;
     if( log_get_errorcount(0) )
-	g10_exit(2);
+  {
+	g10_exit(2);}
 
     /* The command --gpgconf-list is pretty simple and may be called
        directly after the option parsing. */
@@ -2992,6 +2997,7 @@ main (int argc, char **argv )
       {
 	log_info(_("will not run with insecure memory due to %s\n"),
 		 "--require-secmem");
+    
 	g10_exit(2);
       }
 
@@ -3196,8 +3202,9 @@ main (int argc, char **argv )
 	  log_error(_("%s does not yet work with %s\n"),cmdname,"--multifile");
       }
 
-    if( log_get_errorcount(0) )
-	g10_exit(2);
+    if( log_get_errorcount(0) ){
+  
+	g10_exit(2);}
 
     if(opt.compress_level==0)
       opt.compress_algo=COMPRESS_ALGO_NONE;

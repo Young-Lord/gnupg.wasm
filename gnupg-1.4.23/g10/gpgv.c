@@ -176,8 +176,9 @@ main( int argc, char **argv )
 	}
     }
 
-    if( log_get_errorcount(0) )
-	g10_exit(2);
+    if( log_get_errorcount(0) ){
+
+	g10_exit(2);}
 
     g10_opt_homedir = opt.homedir;
 

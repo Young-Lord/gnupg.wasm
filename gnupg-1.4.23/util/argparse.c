@@ -202,8 +202,9 @@ initialize( ARGPARSE_ARGS *arg, const char *filename, unsigned *lineno )
 	      log_error("Invalid option \"%.50s\"\n",
 			arg->internal.last? arg->internal.last:"[??]" );
 	}
-	if( arg->err != 1 || arg->r_opt == -5 )
-	    exit(2);
+	if( arg->err != 1 || arg->r_opt == -5 ){
+
+	    exit(2);}
 	arg->err = 0;
     }
 
@@ -1009,6 +1010,7 @@ usage( int level )
     }
     else if( level == 1 ) {
 	fputs(strusage(40),stderr);
+
 	exit(2);
     }
     else if( level == 2 ) {

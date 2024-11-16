@@ -340,8 +340,9 @@ secmem_init( size_t n )
 	    n = DEFAULT_POOLSIZE;
 	if( !pool_okay )
 	    init_pool(n);
-	else
-	    log_error("Oops, secure memory pool already initialized\n");
+	else {
+	    // log_error("Oops, secure memory pool already initialized\n");
+        }
     }
 
     return !show_warning;
