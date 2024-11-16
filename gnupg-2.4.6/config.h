@@ -155,31 +155,31 @@
 #define GPG_NAME "gpg"
 
 /* Define to support the AES128 cipher */
-/* #undef GPG_USE_AES128 */
+#define GPG_USE_AES128 1
 
 /* Define to support the AES192 cipher */
-/* #undef GPG_USE_AES192 */
+#define GPG_USE_AES192 1
 
 /* Define to support the AES256 cipher */
-/* #undef GPG_USE_AES256 */
+#define GPG_USE_AES256 1
 
 /* Define to support the BLOWFISH cipher */
-/* #undef GPG_USE_BLOWFISH */
+#define GPG_USE_BLOWFISH 1
 
 /* Define to support the CAMELLIA128 cipher */
-/* #undef GPG_USE_CAMELLIA128 */
+#define GPG_USE_CAMELLIA128 1
 
 /* Define to support the CAMELLIA192 cipher */
-/* #undef GPG_USE_CAMELLIA192 */
+#define GPG_USE_CAMELLIA192 1
 
 /* Define to support the CAMELLIA256 cipher */
-/* #undef GPG_USE_CAMELLIA256 */
+#define GPG_USE_CAMELLIA256 1
 
 /* Define to support the CAST5 cipher */
-/* #undef GPG_USE_CAST5 */
+#define GPG_USE_CAST5 1
 
 /* Define to support the ECDH public key */
-/* #undef GPG_USE_ECDH */
+#define GPG_USE_ECDH 1
 
 /* Define to support the ECDSA public key */
 #define GPG_USE_ECDSA 1
@@ -188,28 +188,28 @@
 #define GPG_USE_EDDSA 1
 
 /* Define to support the IDEA cipher */
-/* #undef GPG_USE_IDEA */
+#define GPG_USE_IDEA 1
 
 /* Define to support the MD5 hash */
-/* #undef GPG_USE_MD5 */
+#define GPG_USE_MD5 1
 
 /* Define to support the RIPE-MD160 hash */
-/* #undef GPG_USE_RMD160 */
+#define GPG_USE_RMD160 1
 
 /* Define to support the RSA public key */
-/* #undef GPG_USE_RSA */
+#define GPG_USE_RSA 1
 
 /* Define to support the SHA-224 hash */
-/* #undef GPG_USE_SHA224 */
+#define GPG_USE_SHA224 1
 
 /* Define to support the SHA-384 hash */
-/* #undef GPG_USE_SHA384 */
+#define GPG_USE_SHA384 1
 
 /* Define to support the SHA-512 hash */
-/* #undef GPG_USE_SHA512 */
+#define GPG_USE_SHA512 1
 
 /* Define to support the TWOFISH cipher */
-/* #undef GPG_USE_TWOFISH */
+#define GPG_USE_TWOFISH 1
 
 /* Defined if we build for an Android system */
 /* #undef HAVE_ANDROID_SYSTEM */
@@ -650,7 +650,7 @@
 #define LIBASSUAN_API_REQUESTED $req_libassuan_api
 
 /* Defined if the host has little endian byte ordering */
-/* #undef LITTLE_ENDIAN_HOST */
+#define LITTLE_ENDIAN_HOST 1
 
 /* Defined if this build is in maintainer mode */
 /* #undef MAINTAINER_MODE */

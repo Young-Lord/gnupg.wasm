@@ -204,7 +204,7 @@ BUILD_VERSION = 2.4.6.21312
 CC = /home/yang/wasm/emsdk/upstream/emscripten/emcc
 CCDEPMODE = depmode=gcc3
 CC_FOR_BUILD = /home/yang/wasm/emsdk/upstream/emscripten/emcc
-CFLAGS = -Wall -Wno-pointer-sign -Wpointer-arith -g -O2
+CFLAGS =  -Wall -Wno-pointer-sign -Wpointer-arith -g -O2
 CPP = /home/yang/wasm/emsdk/upstream/emscripten/emcc -E
 CPPFLAGS = 
 CYGPATH_W = echo
