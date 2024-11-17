@@ -35,7 +35,7 @@ top_builddir = ..
 #    files it finds in srcdir = ../../gettext-runtime/intl.
 
 
-prefix = /home/yang/wasm/gnupg-1.4.23/prefix
+prefix = /home/yang/wasm/gnupg-2.4.6/deps/prefix
 exec_prefix = ${prefix}
 transform = s,x,x,
 libdir = ${exec_prefix}/lib
@@ -53,12 +53,12 @@ INSTALL_DATA = ${INSTALL} -m 644
 # We use $(mkdir_p).
 # In automake <= 1.9.x, $(mkdir_p) is defined either as "mkdir -p --" or as
 # "$(mkinstalldirs)" or as "$(install_sh) -d". For these automake versions,
-# ${SHELL} /home/yang/wasm/gnupg-1.4.23-3/scripts/install-sh does not start with $(SHELL), so we add it.
+# ${SHELL} /home/yang/wasm/gnupg-1.4.23/scripts/install-sh does not start with $(SHELL), so we add it.
 # In automake >= 1.10, $(MKDIR_P) is derived from ${MKDIR_P}, which is defined
 # either as "/path/to/mkdir -p" or ".../install-sh -c -d". For these automake
 # versions, $(mkinstalldirs) and $(install_sh) are unused.
-mkinstalldirs = $(SHELL) ${SHELL} /home/yang/wasm/gnupg-1.4.23-3/scripts/install-sh -d
-install_sh = $(SHELL) ${SHELL} /home/yang/wasm/gnupg-1.4.23-3/scripts/install-sh
+mkinstalldirs = $(SHELL) ${SHELL} /home/yang/wasm/gnupg-1.4.23/scripts/install-sh -d
+install_sh = $(SHELL) ${SHELL} /home/yang/wasm/gnupg-1.4.23/scripts/install-sh
 MKDIR_P = /usr/bin/mkdir -p
 mkdir_p = $(MKDIR_P)
 
@@ -103,9 +103,9 @@ DEFS = -DLOCALEDIR=\"$(localedir)\" -DLOCALE_ALIAS_PATH=\"$(aliaspath)\" \
 -Dset_relocation_prefix=libintl_set_relocation_prefix \
 -Drelocate=libintl_relocate \
 -DDEPENDS_ON_LIBICONV=1 -DHAVE_CONFIG_H
-CPPFLAGS = 
+CPPFLAGS =  -I/home/yang/wasm/gnupg-2.4.6/deps/prefix/include -I/home/yang/wasm/gnupg-2.4.6/deps/prefix/include
 CFLAGS = -g -O2 -Wall -Wno-pointer-sign -fvisibility=hidden
-LDFLAGS =  $(LDFLAGS_no)
+LDFLAGS =  -L/home/yang/wasm/gnupg-2.4.6/deps/prefix/lib -L/home/yang/wasm/gnupg-2.4.6/deps/prefix/lib $(LDFLAGS_no)
 LDFLAGS_yes = -Wl,--export-all-symbols
 LDFLAGS_no =
 LIBS = 
@@ -208,9 +208,9 @@ gettext.h libgettext.h plural-eval.c libgnuintl.h \
 libgnuintl.h_vms Makefile.vms libgnuintl.h.msvc-static \
 libgnuintl.h.msvc-shared Makefile.msvc
 
-all: all-yes
+all: all-no
 all-yes: libintl.$la libintl.h charset.alias ref-add.sed ref-del.sed
-all-no: all-no-yes
+all-no: all-no-no
 all-no-yes: libgnuintl.$la
 all-no-no:
 
@@ -373,7 +373,7 @@ libintl.h: $(srcdir)/libgnuintl.in.h
 	  < $(srcdir)/libgnuintl.in.h > libintl.h
 
 charset.alias: $(srcdir)/config.charset
-	$(SHELL) $(srcdir)/config.charset 'x86_64-pc-linux-gnu' > t-$@
+	$(SHELL) $(srcdir)/config.charset 'wasm32-unknown-none' > t-$@
 	mv t-$@ $@
 
 check: all
@@ -386,7 +386,7 @@ check: all
 install: install-exec install-data
 install-exec: all
 	if { test "$(PACKAGE)" = "gettext-runtime" || test "$(PACKAGE)" = "gettext-tools"; } \
-	   && test 'yes' = yes; then \
+	   && test 'no' = yes; then \
 	  $(mkdir_p) $(DESTDIR)$(libdir) $(DESTDIR)$(includedir); \
 	  $(INSTALL_DATA) libintl.h $(DESTDIR)$(includedir)/libintl.h; \
 	  $(LIBTOOL) --mode=install \
@@ -401,7 +401,7 @@ install-exec: all
 	  : ; \
 	fi
 	if test "$(PACKAGE)" = "gettext-tools" \
-	   && test 'yes' = no \
+	   && test 'no' = no \
 	   && test no != no; then \
 	  $(mkdir_p) $(DESTDIR)$(libdir); \
 	  $(LIBTOOL) --mode=install \
@@ -413,9 +413,9 @@ install-exec: all
 	else \
 	  : ; \
 	fi
-	if test 'yes' = yes; then \
+	if test 'no' = yes; then \
 	  if test no = no; then \
-	    case 'linux-gnu' in \
+	    case 'none' in \
 	      darwin[56]*) \
 	        need_charset_alias=true ;; \
 	      darwin* | cygwin* | mingw* | pw32* | cegcc*) \
@@ -486,21 +486,21 @@ install-dvi install-html install-info install-ps install-pdf:
 
 installdirs:
 	if { test "$(PACKAGE)" = "gettext-runtime" || test "$(PACKAGE)" = "gettext-tools"; } \
-	   && test 'yes' = yes; then \
+	   && test 'no' = yes; then \
 	  $(mkdir_p) $(DESTDIR)$(libdir) $(DESTDIR)$(includedir); \
 	else \
 	  : ; \
 	fi
 	if test "$(PACKAGE)" = "gettext-tools" \
-	   && test 'yes' = no \
+	   && test 'no' = no \
 	   && test no != no; then \
 	  $(mkdir_p) $(DESTDIR)$(libdir); \
 	else \
 	  : ; \
 	fi
-	if test 'yes' = yes; then \
+	if test 'no' = yes; then \
 	  if test no = no; then \
-	    case 'linux-gnu' in \
+	    case 'none' in \
 	      darwin[56]*) \
 	        need_charset_alias=true ;; \
 	      darwin* | cygwin* | mingw* | pw32* | cegcc*) \
@@ -529,7 +529,7 @@ installcheck:
 
 uninstall:
 	if { test "$(PACKAGE)" = "gettext-runtime" || test "$(PACKAGE)" = "gettext-tools"; } \
-	   && test 'yes' = yes; then \
+	   && test 'no' = yes; then \
 	  rm -f $(DESTDIR)$(includedir)/libintl.h; \
 	  $(LIBTOOL) --mode=uninstall \
 	    rm -f $(DESTDIR)$(libdir)/libintl.$la; \
@@ -537,13 +537,13 @@ uninstall:
 	  : ; \
 	fi
 	if test "$(PACKAGE)" = "gettext-tools" \
-	   && test 'yes' = no \
+	   && test 'no' = no \
 	   && test no != no; then \
 	  rm -f $(DESTDIR)$(libdir)/preloadable_libintl.so; \
 	else \
 	  : ; \
 	fi
-	if test 'yes' = yes; then \
+	if test 'no' = yes; then \
 	  if test -f $(DESTDIR)$(libdir)/charset.alias; then \
 	    temp=$(DESTDIR)$(libdir)/t-charset.alias; \
 	    dest=$(DESTDIR)$(libdir)/charset.alias; \
@@ -594,7 +594,7 @@ printf.$lo: $(srcdir)/printf-args.h $(srcdir)/printf-args.c $(srcdir)/printf-par
 # A bison-2.1 generated plural.c includes <libintl.h> if ENABLE_NLS.
 PLURAL_DEPS_yes = libintl.h
 PLURAL_DEPS_no =
-plural.$lo: $(PLURAL_DEPS_yes)
+plural.$lo: $(PLURAL_DEPS_no)
 
 tags: TAGS
 

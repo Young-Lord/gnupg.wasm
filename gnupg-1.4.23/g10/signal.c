@@ -153,7 +153,7 @@ init_signals()
 void
 pause_on_sigusr( int which )
 {
-#if defined(HAVE_SIGPROCMASK_NEVER) && defined(HAVE_SIGSET_T)
+#if defined(HAVE_SIGPROCMASK) && defined(HAVE_SIGSET_T)
     sigset_t mask, oldmask;
 
     assert( which == 1 );

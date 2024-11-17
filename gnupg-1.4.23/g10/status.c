@@ -25,7 +25,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <signal.h>
-#ifdef USE_SHM_COPROCESSING_NEVER
+#ifdef USE_SHM_COPROCESSING
 #ifdef USE_CAPABILITIES
 #include <sys/capability.h>
 #endif
@@ -54,12 +54,12 @@
 
 static FILE *statusfp;
 
-#ifdef USE_SHM_COPROCESSING_NEVER
+#ifdef USE_SHM_COPROCESSING
   static int shm_id = -1;
   static volatile char *shm_area;
   static size_t shm_size;
   static int shm_is_locked;
-#endif /*USE_SHM_COPROCESSING_NEVER*/
+#endif /*USE_SHM_COPROCESSING*/
 
 
 static void
@@ -341,7 +341,7 @@ write_status_buffer ( int no, const char *buffer, size_t len, int wrap )
 }
 
 
-#ifdef USE_SHM_COPROCESSING_NEVER
+#ifdef USE_SHM_COPROCESSING
 
 #ifndef IPC_RMID_DEFERRED_RELEASE
 static void
@@ -512,7 +512,7 @@ do_shm_get( const char *keyword, int hidden, int getbool )
     return string;
 }
 
-#endif /* USE_SHM_COPROCESSING_NEVER */
+#endif /* USE_SHM_COPROCESSING */
 
 static int
 myread(int fd, void *buf, size_t count)
@@ -594,7 +594,7 @@ cpr_enabled()
 {
     if( opt.command_fd != -1 )
 	return 1;
-#ifdef USE_SHM_COPROCESSING_NEVER
+#ifdef USE_SHM_COPROCESSING
     if( opt.shm_coprocess )
 	return 1;
 #endif
@@ -608,7 +608,7 @@ cpr_get_no_help( const char *keyword, const char *prompt )
 
     if( opt.command_fd != -1 )
 	return do_get_from_fd ( keyword, 0, 0 );
-#ifdef USE_SHM_COPROCESSING_NEVER
+#ifdef USE_SHM_COPROCESSING
     if( opt.shm_coprocess )
 	return do_shm_get( keyword, 0, 0 );
 #endif
@@ -625,7 +625,7 @@ cpr_get( const char *keyword, const char *prompt )
 
     if( opt.command_fd != -1 )
 	return do_get_from_fd ( keyword, 0, 0 );
-#ifdef USE_SHM_COPROCESSING_NEVER
+#ifdef USE_SHM_COPROCESSING
     if( opt.shm_coprocess )
 	return do_shm_get( keyword, 0, 0 );
 #endif
@@ -661,7 +661,7 @@ cpr_get_hidden( const char *keyword, const char *prompt )
 
     if( opt.command_fd != -1 )
 	return do_get_from_fd ( keyword, 1, 0 );
-#ifdef USE_SHM_COPROCESSING_NEVER
+#ifdef USE_SHM_COPROCESSING
     if( opt.shm_coprocess )
 	return do_shm_get( keyword, 1, 0 );
 #endif
@@ -681,7 +681,7 @@ cpr_kill_prompt(void)
 {
     if( opt.command_fd != -1 )
 	return;
-#ifdef USE_SHM_COPROCESSING_NEVER
+#ifdef USE_SHM_COPROCESSING
     if( opt.shm_coprocess )
 	return;
 #endif
@@ -697,7 +697,7 @@ cpr_get_answer_is_yes( const char *keyword, const char *prompt )
 
     if( opt.command_fd != -1 )
 	return !!do_get_from_fd ( keyword, 0, 1 );
-#ifdef USE_SHM_COPROCESSING_NEVER
+#ifdef USE_SHM_COPROCESSING
     if( opt.shm_coprocess )
 	return !!do_shm_get( keyword, 0, 1 );
 #endif
@@ -725,7 +725,7 @@ cpr_get_answer_yes_no_quit( const char *keyword, const char *prompt )
 
     if( opt.command_fd != -1 )
 	return !!do_get_from_fd ( keyword, 0, 1 );
-#ifdef USE_SHM_COPROCESSING_NEVER
+#ifdef USE_SHM_COPROCESSING
     if( opt.shm_coprocess )
 	return !!do_shm_get( keyword, 0, 1 );
 #endif
@@ -757,7 +757,7 @@ cpr_get_answer_okay_cancel (const char *keyword,
 
   if( opt.command_fd != -1 )
     answer = do_get_from_fd ( keyword, 0, 0 );
-#ifdef USE_SHM_COPROCESSING_NEVER
+#ifdef USE_SHM_COPROCESSING
   else if( opt.shm_coprocess )
     answer = do_shm_get( keyword, 0, 0 );
 #endif

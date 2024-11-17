@@ -23,7 +23,7 @@ srcdir = .
 top_srcdir = ..
 
 
-prefix = /home/yang/wasm/gnupg-1.4.23/prefix
+prefix = /home/yang/wasm/gnupg-2.4.6/deps/prefix
 exec_prefix = ${prefix}
 datarootdir = ${prefix}/share
 datadir = ${datarootdir}
@@ -36,12 +36,12 @@ INSTALL_DATA = ${INSTALL} -m 644
 # We use $(mkdir_p).
 # In automake <= 1.9.x, $(mkdir_p) is defined either as "mkdir -p --" or as
 # "$(mkinstalldirs)" or as "$(install_sh) -d". For these automake versions,
-# ${SHELL} /home/yang/wasm/gnupg-1.4.23-3/scripts/install-sh does not start with $(SHELL), so we add it.
+# ${SHELL} /home/yang/wasm/gnupg-1.4.23/scripts/install-sh does not start with $(SHELL), so we add it.
 # In automake >= 1.10, $(MKDIR_P) is derived from ${MKDIR_P}, which is defined
 # either as "/path/to/mkdir -p" or ".../install-sh -c -d". For these automake
 # versions, $(mkinstalldirs) and $(install_sh) are unused.
-mkinstalldirs = $(SHELL) ${SHELL} /home/yang/wasm/gnupg-1.4.23-3/scripts/install-sh -d
-install_sh = $(SHELL) ${SHELL} /home/yang/wasm/gnupg-1.4.23-3/scripts/install-sh
+mkinstalldirs = $(SHELL) ${SHELL} /home/yang/wasm/gnupg-1.4.23/scripts/install-sh -d
+install_sh = $(SHELL) ${SHELL} /home/yang/wasm/gnupg-1.4.23/scripts/install-sh
 MKDIR_P = /usr/bin/mkdir -p
 mkdir_p = $(MKDIR_P)
 
@@ -243,7 +243,7 @@ DIST_DEPENDS_ON_UPDATE_PO = yes
 	mv t-$@ $@
 
 
-all: all-yes
+all: all-no
 
 all-yes: stamp-po
 all-no:
@@ -376,7 +376,7 @@ $(POFILES): $(POFILESDEPS)
 
 install: install-exec install-data
 install-exec:
-install-data: install-data-yes
+install-data: install-data-no
 	if test "$(PACKAGE)" = "gettext-tools"; then \
 	  $(mkdir_p) $(DESTDIR)$(gettextsrcdir); \
 	  for file in $(DISTFILES.common) Makevars.template; do \
@@ -434,7 +434,7 @@ install-strip: install
 
 installdirs: installdirs-exec installdirs-data
 installdirs-exec:
-installdirs-data: installdirs-data-yes
+installdirs-data: installdirs-data-no
 	if test "$(PACKAGE)" = "gettext-tools"; then \
 	  $(mkdir_p) $(DESTDIR)$(gettextsrcdir); \
 	else \
@@ -478,7 +478,7 @@ installcheck:
 
 uninstall: uninstall-exec uninstall-data
 uninstall-exec:
-uninstall-data: uninstall-data-yes
+uninstall-data: uninstall-data-no
 	if test "$(PACKAGE)" = "gettext-tools"; then \
 	  for file in $(DISTFILES.common) Makevars.template; do \
 	    rm -f $(DESTDIR)$(gettextsrcdir)/$$file; \

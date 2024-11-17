@@ -134,7 +134,7 @@ void write_status_buffer ( int no,
 void write_status_text_and_buffer ( int no, const char *text,
                                     const char *buffer, size_t len, int wrap );
 
-#ifdef USE_SHM_COPROCESSING_NEVER
+#ifdef USE_SHM_COPROCESSING
   void init_shm_coprocessing ( ulong requested_shm_size, int lock_mem );
 #endif /*USE_SHM_COPROCESSING*/
 

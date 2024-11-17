@@ -28,7 +28,8 @@ GITLOG_TO_CHANGELOG=gitlog-to-changelog
 if CROSS_COMPILING
 checks =
 else
-checks = checks
+# checks = checks
+checks =
 endif
 
 if HAVE_W32_SYSTEM
