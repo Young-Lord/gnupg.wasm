@@ -34,3 +34,16 @@ fast reload:  pushd .. && rm g10/gpg.o && emmake make -j16 && popd && /home/yang
 ## TODO
 
 libusb: <https://web.dev/articles/porting-gphoto2-to-the-web#dealing_with_dynamic_loading> <https://emscripten.org/docs/compiling/Dynamic-Linking.html>
+term (stdin & stdout): <https://github.com/xloem/emterm> <https://github.com/gaycodegal/lua-repl>
+
+## dev guide
+
+1. setup emsdk: <https://emscripten.org/docs/getting_started/index.html>
+2. run `. init.sh` every time.
+2. compile!
+3. tweak the code. some static variables may not reset after run, so you may reset them manually.
+
+## Credits
+
+- [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm)
+- [emscripten](https://github.com/emscripten-core/emscripten)
