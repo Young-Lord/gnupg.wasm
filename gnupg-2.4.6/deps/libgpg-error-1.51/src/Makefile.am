@@ -259,7 +259,7 @@ gpg-error.def: Makefile gpg-error.def.in
 # It is correct to use $(CC_FOR_BUILD) here.  We want to run the
 # program at build time.
 mkerrcodes$(EXEEXT_FOR_BUILD): mkerrcodes.c mkerrcodes.h Makefile
-	gcc $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) \
+	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) \
 	$(CPPFLAGS_FOR_BUILD) -I. -I$(srcdir) -o $@ $(srcdir)/mkerrcodes.c
 
 code-from-errno.h: mkerrcodes$(EXEEXT_FOR_BUILD) Makefile
@@ -272,7 +272,7 @@ errnos-sym.h: Makefile mkstrtable.awk errnos.in
 
 
 mkheader$(EXEEXT_FOR_BUILD): mkheader.c Makefile
-	gcc $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) \
+	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) \
 	$(CPPFLAGS_FOR_BUILD) -g -I. -I$(srcdir) -o $@ $(srcdir)/mkheader.c
 
 parts_of_gpg_error_h = 	 	\

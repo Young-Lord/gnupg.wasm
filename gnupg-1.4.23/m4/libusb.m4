@@ -20,7 +20,7 @@ AC_DEFUN([GNUPG_CHECK_LIBUSB],
 
   if test "$_do_libusb" != "no" ; then
      if test -d "$withval" ; then
-        CPPFLAGS="${CPPFLAGS} -I$withval/include"
+        CPPFLAGS="${CPPFLAGS} -I$withval/include/libusb-1.0"
         LDFLAGS="${LDFLAGS} -L$withval/lib"
         AC_PATH_PROG([_usb_config],["$_do_libusb/bin/libusb-config"])
      else
@@ -30,21 +30,21 @@ AC_DEFUN([GNUPG_CHECK_LIBUSB],
      _libusb_save_libs=$LIBS
      _libusb_save_cflags=$CFLAGS
 
-     if test x$_usb_config != "x" ; then
-        _libusb_try_libs=`$LIBS $_usb_config --libs`
-        _libusb_try_cflags=`$LIBS $_usb_config --cflags`
-     else
-        _libusb_try_libs="-lusb"
+dnl     if test x$_usb_config != "x" ; then
+dnl        _libusb_try_libs=`$LIBS $_usb_config --libs`
+dnl        _libusb_try_cflags=`$LIBS $_usb_config --cflags`
+dnl     else
+        _libusb_try_libs="-lusb-1.0 -lembind -s ASYNCIFY -s ALLOW_MEMORY_GROWTH"
         _libusb_try_cflags=""
-     fi
+dnl     fi
 
      LIBS="$LIBS $_libusb_try_libs"
      CFLAGS="$CFLAGS $_libusb_try_cflags"
 
      AC_MSG_CHECKING([whether libusb is present and sane])
 
-     AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <usb.h>]],[[
-usb_bulk_write(NULL,0,NULL,0,0);
+     AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <libusb.h>]],[[
+libusb_bulk_transfer(NULL,0,NULL,0,0,0);
 ]])],_found_libusb=yes,_found_libusb=no)
 
      AC_MSG_RESULT([$_found_libusb])

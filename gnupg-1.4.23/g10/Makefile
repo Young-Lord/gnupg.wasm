@@ -122,26 +122,26 @@ subdir = g10
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/autobuild.m4 \
 	$(top_srcdir)/m4/codeset.m4 $(top_srcdir)/m4/estream.m4 \
-	$(top_srcdir)/m4/fcntl-o.m4 $(top_srcdir)/m4/gettext.m4 \
-	$(top_srcdir)/m4/glibc2.m4 $(top_srcdir)/m4/glibc21.m4 \
-	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/intdiv0.m4 \
-	$(top_srcdir)/m4/intl.m4 $(top_srcdir)/m4/intlmacosx.m4 \
-	$(top_srcdir)/m4/intmax.m4 $(top_srcdir)/m4/inttypes-pri.m4 \
-	$(top_srcdir)/m4/inttypes_h.m4 $(top_srcdir)/m4/isc-posix.m4 \
-	$(top_srcdir)/m4/lcmessage.m4 $(top_srcdir)/m4/ldap.m4 \
-	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
-	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libcurl.m4 \
-	$(top_srcdir)/m4/libusb.m4 $(top_srcdir)/m4/lock.m4 \
-	$(top_srcdir)/m4/longlong.m4 $(top_srcdir)/m4/nls.m4 \
-	$(top_srcdir)/m4/noexecstack.m4 $(top_srcdir)/m4/po.m4 \
-	$(top_srcdir)/m4/printf-posix.m4 $(top_srcdir)/m4/progtest.m4 \
-	$(top_srcdir)/m4/readline.m4 $(top_srcdir)/m4/size_max.m4 \
-	$(top_srcdir)/m4/stdint_h.m4 $(top_srcdir)/m4/tar-ustar.m4 \
-	$(top_srcdir)/m4/threadlib.m4 $(top_srcdir)/m4/uintmax_t.m4 \
-	$(top_srcdir)/m4/ulonglong.m4 $(top_srcdir)/m4/visibility.m4 \
-	$(top_srcdir)/m4/wchar_t.m4 $(top_srcdir)/m4/wint_t.m4 \
-	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/extern-inline.m4 $(top_srcdir)/m4/fcntl-o.m4 \
+	$(top_srcdir)/m4/gettext.m4 $(top_srcdir)/m4/glibc2.m4 \
+	$(top_srcdir)/m4/glibc21.m4 $(top_srcdir)/m4/iconv.m4 \
+	$(top_srcdir)/m4/intdiv0.m4 $(top_srcdir)/m4/intl.m4 \
+	$(top_srcdir)/m4/intlmacosx.m4 $(top_srcdir)/m4/intmax.m4 \
+	$(top_srcdir)/m4/inttypes-pri.m4 \
+	$(top_srcdir)/m4/inttypes_h.m4 $(top_srcdir)/m4/lcmessage.m4 \
+	$(top_srcdir)/m4/ldap.m4 $(top_srcdir)/m4/lib-ld.m4 \
+	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
+	$(top_srcdir)/m4/libcurl.m4 $(top_srcdir)/m4/libusb.m4 \
+	$(top_srcdir)/m4/lock.m4 $(top_srcdir)/m4/longlong.m4 \
+	$(top_srcdir)/m4/nls.m4 $(top_srcdir)/m4/noexecstack.m4 \
+	$(top_srcdir)/m4/po.m4 $(top_srcdir)/m4/printf-posix.m4 \
+	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/m4/readline.m4 \
+	$(top_srcdir)/m4/size_max.m4 $(top_srcdir)/m4/stdint_h.m4 \
+	$(top_srcdir)/m4/tar-ustar.m4 $(top_srcdir)/m4/threadlib.m4 \
+	$(top_srcdir)/m4/uintmax_t.m4 $(top_srcdir)/m4/ulonglong.m4 \
+	$(top_srcdir)/m4/visibility.m4 $(top_srcdir)/m4/wchar_t.m4 \
+	$(top_srcdir)/m4/wint_t.m4 $(top_srcdir)/m4/xsize.m4 \
+	$(top_srcdir)/acinclude.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(dist_pkgdata_DATA) \
@@ -340,7 +340,7 @@ CC_FOR_BUILD = /home/yang/wasm/emsdk/upstream/emscripten/emcc
 CFLAGS = -g -O2 -Wall -Wno-pointer-sign
 CFLAG_VISIBILITY = -fvisibility=hidden
 CPP = /home/yang/wasm/emsdk/upstream/emscripten/emcc -E
-CPPFLAGS =  -I/home/yang/wasm/gnupg-2.4.6/deps/prefix/include -I/home/yang/wasm/gnupg-2.4.6/deps/prefix/include
+CPPFLAGS =  -I/home/yang/wasm/gnupg-2.4.6/deps/libusb-shared-1.0.27/prefix/include/libusb-1.0 -I/home/yang/wasm/gnupg-2.4.6/deps/libusb-shared-1.0.27/prefix/include
 CSCOPE = cscope
 CTAGS = ctags
 CYGPATH_W = echo
@@ -388,7 +388,7 @@ INTL_LIBTOOL_SUFFIX_PREFIX =
 INTL_MACOSX_LIBS = 
 LDAPLIBS = 
 LDAP_CPPFLAGS = 
-LDFLAGS =  -L/home/yang/wasm/gnupg-2.4.6/deps/prefix/lib -L/home/yang/wasm/gnupg-2.4.6/deps/prefix/lib
+LDFLAGS =  -L/home/yang/wasm/gnupg-2.4.6/deps/libusb-shared-1.0.27/prefix/lib -L/home/yang/wasm/gnupg-2.4.6/deps/libusb-shared-1.0.27/prefix/lib
 LIBCURL = 
 LIBCURL_CPPFLAGS = 
 LIBICONV = 
@@ -400,7 +400,7 @@ LIBPTH_PREFIX =
 LIBREADLINE = 
 LIBS = 
 LIBTHREAD = 
-LIBUSB = 
+LIBUSB = -lusb-1.0 -lembind -s ASYNCIFY -s ALLOW_MEMORY_GROWTH
 LIBUSB_CPPFLAGS = 
 LTLIBC = -lc
 LTLIBICONV = 
@@ -602,7 +602,7 @@ gpgv_SOURCES = gpgv.c           \
 	      verify.c
 
 LDADD = $(needed_libs) $(other_libs) ../zlib/libzlib.a 
-gpg_LDADD = $(LDADD)    
+gpg_LDADD = $(LDADD)    -lusb-1.0 -lembind -s ASYNCIFY -s ALLOW_MEMORY_GROWTH
 all: all-am
 
 .SUFFIXES:

@@ -103,9 +103,9 @@ DEFS = -DLOCALEDIR=\"$(localedir)\" -DLOCALE_ALIAS_PATH=\"$(aliaspath)\" \
 -Dset_relocation_prefix=libintl_set_relocation_prefix \
 -Drelocate=libintl_relocate \
 -DDEPENDS_ON_LIBICONV=1 -DHAVE_CONFIG_H
-CPPFLAGS =  -I/home/yang/wasm/gnupg-2.4.6/deps/prefix/include -I/home/yang/wasm/gnupg-2.4.6/deps/prefix/include
+CPPFLAGS =  -I/home/yang/wasm/gnupg-2.4.6/deps/libusb-shared-1.0.27/prefix/include/libusb-1.0 -I/home/yang/wasm/gnupg-2.4.6/deps/libusb-shared-1.0.27/prefix/include
 CFLAGS = -g -O2 -Wall -Wno-pointer-sign -fvisibility=hidden
-LDFLAGS =  -L/home/yang/wasm/gnupg-2.4.6/deps/prefix/lib -L/home/yang/wasm/gnupg-2.4.6/deps/prefix/lib $(LDFLAGS_no)
+LDFLAGS =  -L/home/yang/wasm/gnupg-2.4.6/deps/libusb-shared-1.0.27/prefix/lib -L/home/yang/wasm/gnupg-2.4.6/deps/libusb-shared-1.0.27/prefix/lib $(LDFLAGS_no)
 LDFLAGS_yes = -Wl,--export-all-symbols
 LDFLAGS_no =
 LIBS = 

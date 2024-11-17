@@ -19,7 +19,7 @@
 #
 # (Process this file with autoconf to produce a configure script.)
 
-AC_PREREQ(2.61)
+AC_PREREQ([2.72])
 min_automake_version="1.14"
 
 # To build a release you need to create a tag with the version number
@@ -42,7 +42,7 @@ m4_define([mym4_betastring],
 m4_define([mym4_isgit],m4_if(mym4_betastring,[],[no],[yes]))
 m4_define([mym4_full_version],[mym4_version[]mym4_betastring])
 
-AC_INIT([gnupg],[mym4_full_version], [https://bugs.gnupg.org])
+AC_INIT([gnupg],[mym4_full_version],[https://bugs.gnupg.org])
 
 
 development_version=mym4_isgit
@@ -54,15 +54,14 @@ AM_INIT_AUTOMAKE([serial-tests std-options dist-bzip2 filename-length-max=99])
 AB_INIT
 AC_CONFIG_HEADERS(config.h)
 
-AC_GNU_SOURCE
+AC_USE_SYSTEM_EXTENSIONS
 
 dnl
 dnl  Check for random module options
 dnl
 AC_MSG_CHECKING([which random module to use])
 AC_ARG_ENABLE(static-rnd,
-    AC_HELP_STRING([[--enable-static-rnd=[egd|unix|linux|auto]]],
-                   [specify a random number source]),
+    AS_HELP_STRING([[--enable-static-rnd=[egd|unix|linux|auto]]],[specify a random number source]),
     [use_static_rnd=$enableval], [use_static_rnd=default])
 
 if test "$use_static_rnd" = no; then
@@ -83,7 +82,7 @@ case "$use_static_rnd" in
 esac
 
 AC_ARG_WITH(egd-socket,
-    AC_HELP_STRING([--with-egd-socket=NAME],[use NAME for the EGD socket]),
+    AS_HELP_STRING([--with-egd-socket=NAME],[use NAME for the EGD socket]),
             egd_socket_name="$withval", egd_socket_name="" )
 AC_DEFINE_UNQUOTED(EGD_SOCKET_NAME, "$egd_socket_name",
                    [Define if you don't want the default EGD socket name.
@@ -95,7 +94,7 @@ dnl See whether the user wants to disable checking for /dev/random
 
 AC_MSG_CHECKING([whether use of /dev/random is requested])
 AC_ARG_ENABLE(dev-random,
-   AC_HELP_STRING([--disable-dev-random],[disable the use of dev random]),
+   AS_HELP_STRING([--disable-dev-random],[disable the use of dev random]),
    try_dev_random=$enableval, try_dev_random=yes)
 AC_MSG_RESULT($try_dev_random)
 
@@ -106,7 +105,7 @@ dnl
 
 AC_MSG_CHECKING([whether assembler modules are requested])
 AC_ARG_ENABLE(asm,
-   AC_HELP_STRING([--disable-asm],[do not use assembler modules]),
+   AS_HELP_STRING([--disable-asm],[do not use assembler modules]),
      try_asm_modules=$enableval, try_asm_modules=yes)
 AC_MSG_RESULT($try_asm_modules)
 
@@ -123,16 +122,14 @@ dnl fi
 # leaking their contents through processing these files by gpg itself
 AC_MSG_CHECKING([whether SELinux support is requested])
 AC_ARG_ENABLE(selinux-support,
-              AC_HELP_STRING([--enable-selinux-support],
-                             [enable SELinux support]),
+              AS_HELP_STRING([--enable-selinux-support],[enable SELinux support]),
               selinux_support=$enableval, selinux_support=no)
 AC_MSG_RESULT($selinux_support)
 
 
 AC_MSG_CHECKING([whether the new iconv based code is requested])
 AC_ARG_ENABLE(gnupg-iconv,
-              AC_HELP_STRING([--disable-gnupg-iconv],
-                             [disable the new iconv code]),
+              AS_HELP_STRING([--disable-gnupg-iconv],[disable the new iconv code]),
               gnupg_use_iconv=$enableval, gnupg_use_iconv=yes)
 AC_MSG_RESULT($gnupg_use_iconv)
 
@@ -160,7 +157,7 @@ disable_keyserver_path=no
 large_secmem=no
 
 AC_ARG_ENABLE(minimal,
-   AC_HELP_STRING([--enable-minimal],[build the smallest gpg binary possible]),
+   AS_HELP_STRING([--enable-minimal],[build the smallest gpg binary possible]),
    try_dns=no
    use_rsa=no
    use_idea=no
@@ -179,8 +176,7 @@ AC_ARG_ENABLE(minimal,
 
 AC_MSG_CHECKING([whether to allocate extra secure memory])
 AC_ARG_ENABLE(large-secmem,
-              AC_HELP_STRING([--enable-large-secmem],
-                             [allocate extra secure memory]),
+              AS_HELP_STRING([--enable-large-secmem],[allocate extra secure memory]),
               large_secmem=$enableval, large_secmem=no)
 AC_MSG_RESULT($large_secmem)
 if test "$large_secmem" = yes ; then
@@ -194,8 +190,7 @@ AC_DEFINE_UNQUOTED(SECMEM_BUFFER_SIZE,$SECMEM_BUFFER_SIZE,
 
 AC_MSG_CHECKING([whether OpenPGP card support is requested])
 AC_ARG_ENABLE(card-support,
-              AC_HELP_STRING([--disable-card-support],
-                             [disable OpenPGP card support]),
+              AS_HELP_STRING([--disable-card-support],[disable OpenPGP card support]),
               card_support=$enableval)
 AC_MSG_RESULT($card_support)
 
@@ -203,15 +198,14 @@ AC_MSG_RESULT($card_support)
 # Note that we may later disable the agent support based on the platform.
 AC_MSG_CHECKING([whether gpg-agent support is requested])
 AC_ARG_ENABLE(agent-support,
-              AC_HELP_STRING([--disable-agent-support],
-                             [disable gpg-agent support]),
+              AS_HELP_STRING([--disable-agent-support],[disable gpg-agent support]),
               agent_support=$enableval)
 AC_MSG_RESULT($agent_support)
 
 
 AC_MSG_CHECKING([whether to enable the RSA public key algorithm])
 AC_ARG_ENABLE(rsa,
-   AC_HELP_STRING([--disable-rsa],[disable the RSA public key algorithm]),
+   AS_HELP_STRING([--disable-rsa],[disable the RSA public key algorithm]),
    use_rsa=$enableval)
 AC_MSG_RESULT($use_rsa)
 if test x"$use_rsa" = xyes ; then
@@ -220,7 +214,7 @@ fi
 
 AC_MSG_CHECKING([whether to enable the IDEA cipher])
 AC_ARG_ENABLE(idea,
-   AC_HELP_STRING([--disable-idea],[disable the IDEA cipher]),
+   AS_HELP_STRING([--disable-idea],[disable the IDEA cipher]),
    use_idea=$enableval)
 AC_MSG_RESULT($use_idea)
 if test x"$use_idea" = xyes ; then
@@ -229,7 +223,7 @@ fi
 
 AC_MSG_CHECKING([whether to enable the CAST5 cipher])
 AC_ARG_ENABLE(cast5,
-   AC_HELP_STRING([--disable-cast5],[disable the CAST5 cipher]),
+   AS_HELP_STRING([--disable-cast5],[disable the CAST5 cipher]),
    use_cast5=$enableval)
 AC_MSG_RESULT($use_cast5)
 if test x"$use_cast5" = xyes ; then
@@ -238,7 +232,7 @@ fi
 
 AC_MSG_CHECKING([whether to enable the BLOWFISH cipher])
 AC_ARG_ENABLE(blowfish,
-   AC_HELP_STRING([--disable-blowfish],[disable the BLOWFISH cipher]),
+   AS_HELP_STRING([--disable-blowfish],[disable the BLOWFISH cipher]),
    use_blowfish=$enableval)
 AC_MSG_RESULT($use_blowfish)
 if test x"$use_blowfish" = xyes ; then
@@ -247,7 +241,7 @@ fi
 
 AC_MSG_CHECKING([whether to enable the AES ciphers])
 AC_ARG_ENABLE(aes,
-   AC_HELP_STRING([--disable-aes],[disable the AES, AES192, and AES256 ciphers]),
+   AS_HELP_STRING([--disable-aes],[disable the AES, AES192, and AES256 ciphers]),
    use_aes=$enableval)
 AC_MSG_RESULT($use_aes)
 if test x"$use_aes" = xyes ; then
@@ -256,7 +250,7 @@ fi
 
 AC_MSG_CHECKING([whether to enable the TWOFISH cipher])
 AC_ARG_ENABLE(twofish,
-   AC_HELP_STRING([--disable-twofish],[disable the TWOFISH cipher]),
+   AS_HELP_STRING([--disable-twofish],[disable the TWOFISH cipher]),
    use_twofish=$enableval)
 AC_MSG_RESULT($use_twofish)
 if test x"$use_twofish" = xyes ; then
@@ -265,7 +259,7 @@ fi
 
 AC_MSG_CHECKING([whether to enable the CAMELLIA cipher])
 AC_ARG_ENABLE(camellia,
-   AC_HELP_STRING([--enable-camellia],[enable the CAMELLIA cipher]),
+   AS_HELP_STRING([--enable-camellia],[enable the CAMELLIA cipher]),
    use_camellia=$enableval)
 AC_MSG_RESULT($use_camellia)
 if test x"$use_camellia" = xyes ; then
@@ -274,7 +268,7 @@ fi
 
 AC_MSG_CHECKING([whether to enable the SHA-224 and SHA-256 digests])
 AC_ARG_ENABLE(sha256,
-   AC_HELP_STRING([--disable-sha256],[disable the SHA-224 and SHA-256 digests]),
+   AS_HELP_STRING([--disable-sha256],[disable the SHA-224 and SHA-256 digests]),
    use_sha256=$enableval)
 AC_MSG_RESULT($use_sha256)
 if test x"$use_sha256" = xyes ; then
@@ -284,20 +278,20 @@ fi
 dnl SHA512 is defined only after we confirm 64-bit support later
 AC_MSG_CHECKING([whether to enable the SHA-384 and SHA-512 digests])
 AC_ARG_ENABLE(sha512,
-   AC_HELP_STRING([--disable-sha512],[disable the SHA-384 and SHA-512 digests]),
+   AS_HELP_STRING([--disable-sha512],[disable the SHA-384 and SHA-512 digests]),
    use_sha512=$enableval)
 AC_MSG_RESULT($use_sha512)
 
 dnl BZLIB is defined only after we confirm the library is available later
 AC_MSG_CHECKING([whether to enable the BZIP2 compression algorithm])
 AC_ARG_ENABLE(bzip2,
-   AC_HELP_STRING([--disable-bzip2],[disable the BZIP2 compression algorithm]),
+   AS_HELP_STRING([--disable-bzip2],[disable the BZIP2 compression algorithm]),
    use_bzip2=$enableval)
 AC_MSG_RESULT($use_bzip2)
 
 AC_MSG_CHECKING([whether to enable external program execution])
 AC_ARG_ENABLE(exec,
-    AC_HELP_STRING([--disable-exec],[disable all external program execution]),
+    AS_HELP_STRING([--disable-exec],[disable all external program execution]),
     use_exec=$enableval)
 AC_MSG_RESULT($use_exec)
 if test "$use_exec" = no ; then
@@ -307,7 +301,7 @@ fi
 if test "$use_exec" = yes ; then
   AC_MSG_CHECKING([whether to enable photo ID viewing])
   AC_ARG_ENABLE(photo-viewers,
-      AC_HELP_STRING([--disable-photo-viewers],[disable photo ID viewers]),
+      AS_HELP_STRING([--disable-photo-viewers],[disable photo ID viewers]),
       [if test "$enableval" = no ; then
          AC_DEFINE(DISABLE_PHOTO_VIEWER,1,[define to disable photo viewing])
       fi],enableval=yes)
@@ -317,8 +311,7 @@ if test "$use_exec" = yes ; then
   if test "$gnupg_cv_enable_photo_viewers" = yes ; then
     AC_MSG_CHECKING([whether to use a fixed photo ID viewer])
     AC_ARG_WITH(photo-viewer,
-        AC_HELP_STRING([--with-photo-viewer=FIXED_VIEWER],
-                       [set a fixed photo ID viewer]),
+        AS_HELP_STRING([--with-photo-viewer=FIXED_VIEWER],[set a fixed photo ID viewer]),
         [if test "$withval" = yes ; then
            withval=no
         elif test "$withval" != no ; then
@@ -330,8 +323,7 @@ if test "$use_exec" = yes ; then
 
   AC_MSG_CHECKING([whether to enable external keyserver helpers])
   AC_ARG_ENABLE(keyserver-helpers,
-      AC_HELP_STRING([--disable-keyserver-helpers],
-                     [disable all external keyserver support]),
+      AS_HELP_STRING([--disable-keyserver-helpers],[disable all external keyserver support]),
       [if test "$enableval" = no ; then
          AC_DEFINE(DISABLE_KEYSERVER_HELPERS,1,
                   [define to disable keyserver helpers])
@@ -343,42 +335,38 @@ if test "$use_exec" = yes ; then
 dnl LDAP is defined only after we confirm the library is available later
     AC_MSG_CHECKING([whether LDAP keyserver support is requested])
     AC_ARG_ENABLE(ldap,
-      AC_HELP_STRING([--disable-ldap],[disable LDAP keyserver interface only]),
+      AS_HELP_STRING([--disable-ldap],[disable LDAP keyserver interface only]),
       try_ldap=$enableval, try_ldap=yes)
     AC_MSG_RESULT($try_ldap)
 
     AC_MSG_CHECKING([whether HKP keyserver support is requested])
     AC_ARG_ENABLE(hkp,
-      AC_HELP_STRING([--disable-hkp],[disable HKP keyserver interface only]),
+      AS_HELP_STRING([--disable-hkp],[disable HKP keyserver interface only]),
       try_hkp=$enableval, try_hkp=yes)
     AC_MSG_RESULT($try_hkp)
 
     AC_MSG_CHECKING([whether finger key fetching support is requested])
     AC_ARG_ENABLE(finger,
-      AC_HELP_STRING([--disable-finger],
-        [disable finger key fetching interface only]),
+      AS_HELP_STRING([--disable-finger],[disable finger key fetching interface only]),
       try_finger=$enableval, try_finger=yes)
     AC_MSG_RESULT($try_finger)
 
     AC_MSG_CHECKING([whether generic object key fetching support is requested])
     AC_ARG_ENABLE(generic,
-      AC_HELP_STRING([--disable-generic],
-        [disable generic object key fetching interface only]),
+      AS_HELP_STRING([--disable-generic],[disable generic object key fetching interface only]),
       try_generic=$enableval, try_generic=yes)
     AC_MSG_RESULT($try_generic)
 
     AC_MSG_CHECKING([whether email keyserver support is requested])
     AC_ARG_ENABLE(mailto,
-      AC_HELP_STRING([--enable-mailto],
-	[enable email keyserver interface only]),
+      AS_HELP_STRING([--enable-mailto],[enable email keyserver interface only]),
       try_mailto=$enableval, try_mailto=no)
     AC_MSG_RESULT($try_mailto)
   fi
 
   AC_MSG_CHECKING([whether keyserver exec-path is enabled])
   AC_ARG_ENABLE(keyserver-path,
-    AC_HELP_STRING([--disable-keyserver-path],
-      [disable the exec-path option for keyserver helpers]),
+    AS_HELP_STRING([--disable-keyserver-path],[disable the exec-path option for keyserver helpers]),
     [if test "$enableval" = no ; then
        disable_keyserver_path=yes
     fi],enableval=yes)
@@ -387,7 +375,7 @@ fi
 
 AC_MSG_CHECKING([whether the included zlib is requested])
 AC_ARG_WITH(included-zlib,
-    AC_HELP_STRING([--with-included-zlib],[use the zlib code included here]),
+    AS_HELP_STRING([--with-included-zlib],[use the zlib code included here]),
 [g10_force_zlib="$withval"], [g10_force_zlib=no] )
 AC_MSG_RESULT($g10_force_zlib)
 
@@ -397,7 +385,7 @@ dnl pretty small on embedded systems.
 dnl
 AC_MSG_CHECKING([for the size of the key and uid cache])
 AC_ARG_ENABLE(key-cache,
-	AC_HELP_STRING([--enable-key-cache=SIZE],[Set key cache to SIZE (default 4096)]),,enableval=4096)
+	AS_HELP_STRING([--enable-key-cache=SIZE],[Set key cache to SIZE (default 4096)]),,enableval=4096)
 
 if test "$enableval" = "no"; then
    enableval=5
@@ -421,8 +409,7 @@ dnl Check whether we want to use Linux capabilities
 dnl
 AC_MSG_CHECKING([whether use of capabilities is requested])
 AC_ARG_WITH(capabilities,
-    AC_HELP_STRING([--with-capabilities],
-                   [use linux capabilities [default=no]]),
+    AS_HELP_STRING([--with-capabilities],[use linux capabilities [default=no]]),
 [use_capabilities="$withval"],[use_capabilities=no])
 AC_MSG_RESULT($use_capabilities)
 
@@ -550,7 +537,7 @@ AC_PROG_CPP
 AC_PROG_RANLIB
 AC_CHECK_TOOL(AR, ar, :)
 AC_PATH_PROG(PERL,"perl")
-AC_ISC_POSIX
+AC_SEARCH_LIBS([strerror],[cposix])
 AC_SYS_LARGEFILE
 AC_PROG_INSTALL
 AC_PROG_AWK
@@ -697,14 +684,12 @@ dnl and CERT.
 if test x"$try_dns" = xyes ; then
    if test x"$try_hkp" = xyes || test x"$try_http" = xyes ; then
       AC_ARG_ENABLE(dns-srv,
-         AC_HELP_STRING([--disable-dns-srv],
-      	[disable the use of DNS SRV in HKP and HTTP]),
+         AS_HELP_STRING([--disable-dns-srv],[disable the use of DNS SRV in HKP and HTTP]),
          use_dns_srv=$enableval,use_dns_srv=yes)
    fi
 
    AC_ARG_ENABLE(dns-cert,
-      AC_HELP_STRING([--disable-dns-cert],
-   	[disable the use of CERT records in DNS]),
+      AS_HELP_STRING([--disable-dns-cert],[disable the use of CERT records in DNS]),
       use_dns_cert=$enableval,use_dns_cert=yes)
 fi
 
@@ -799,8 +784,7 @@ dnl postfix, etc.  Basically, anything that can handle "sendmail -t".
 
 if test "$try_mailto" = yes ; then
   AC_ARG_WITH(mailprog,
-     AC_HELP_STRING([--with-mailprog=NAME],
-                    [use "NAME -t" for mail transport]),,with_mailprog=yes)
+     AS_HELP_STRING([--with-mailprog=NAME],[use "NAME -t" for mail transport]),,with_mailprog=yes)
 
   if test "$with_mailprog" = yes ; then
     AC_PATH_PROG(SENDMAIL,sendmail,,$PATH:/usr/sbin:/usr/libexec:/usr/lib)
@@ -932,7 +916,15 @@ AM_CONDITIONAL(ENABLE_AGENT_SUPPORT, test "$agent_support" = yes)
 AM_CONDITIONAL(ENABLE_SELINUX_HACKS, test "$selinux_support" = yes)
 
 dnl Checks for header files.
-AC_HEADER_STDC
+m4_warn([obsolete],
+[The preprocessor macro 'STDC_HEADERS' is obsolete.
+  Except in unusual embedded environments, you can safely include all
+  C89 headers unconditionally.])dnl
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 AC_CHECK_HEADERS([unistd.h langinfo.h termio.h locale.h getopt.h pwd.h \
                   signal.h])
 
@@ -946,12 +938,29 @@ AC_C_INLINE
 AC_C_VOLATILE
 AC_TYPE_SIZE_T
 AC_TYPE_MODE_T
-AC_TYPE_SIGNAL
-AC_DECL_SYS_SIGLIST
+m4_warn([obsolete],
+[your code may safely assume C89 semantics that RETSIGTYPE is void.
+Remove this warning and the 'AC_CACHE_CHECK' when you adjust the code.])dnl
+AC_CACHE_CHECK([return type of signal handlers],[ac_cv_type_signal],[AC_COMPILE_IFELSE(
+[AC_LANG_PROGRAM([#include <sys/types.h>
+#include <signal.h>
+],
+		 [return *(signal (0, 0)) (0) == 1;])],
+		   [ac_cv_type_signal=int],
+		   [ac_cv_type_signal=void])])
+AC_DEFINE_UNQUOTED([RETSIGTYPE],[$ac_cv_type_signal],[Define as the return type of signal handlers
+		    ('int' or 'void').])
+
+AC_CHECK_DECLS([sys_siglist],[],[],[#include <signal.h>
+/* NetBSD declares sys_siglist in unistd.h.  */
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+])
+
 
 AC_ARG_ENABLE(endian-check,
-              AC_HELP_STRING([--disable-endian-check],
-	      [disable the endian check and trust the OS provided macros]),
+              AS_HELP_STRING([--disable-endian-check],[disable the endian check and trust the OS provided macros]),
 	      endiancheck=$enableval,endiancheck=yes)
 
 if test x"$endiancheck" = xyes ; then
@@ -968,7 +977,20 @@ AC_CHECK_SIZEOF(unsigned short)
 AC_CHECK_SIZEOF(unsigned int)
 AC_CHECK_SIZEOF(unsigned long)
 AC_CHECK_SIZEOF(unsigned long long)
-AC_HEADER_TIME
+m4_warn([obsolete],
+[Update your code to rely only on HAVE_SYS_TIME_H,
+then remove this warning and the obsolete code below it.
+All current systems provide time.h; it need not be checked for.
+Not all systems provide sys/time.h, but those that do, all allow
+you to include it and time.h simultaneously.])dnl
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+# Obsolete code to be removed.
+if test $ac_cv_header_sys_time_h = yes; then
+  AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>
+	     and <time.h>.  This macro is obsolete.])
+fi
+# End of obsolete code.
+
 AC_CHECK_SIZEOF(time_t,,[[
 #include <stdio.h>
 #if TIME_WITH_SYS_TIME
@@ -1044,28 +1066,23 @@ AC_CHECK_FUNC(getopt,,AC_CHECK_LIB(iberty,getopt,AC_SUBST(GETOPT,"-liberty")))
 #
 AC_CACHE_CHECK([for gethrtime],
                [gnupg_cv_func_gethrtime],
-               [AC_TRY_LINK([#include <sys/times.h>],[
+               [AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <sys/times.h>]], [[
                    hrtime_t tv;
                    tv = gethrtime();
-                 ],
-                 [gnupg_cv_func_gethrtime=yes],
-                 [gnupg_cv_func_gethrtime=no])
+                 ]])],[gnupg_cv_func_gethrtime=yes],[gnupg_cv_func_gethrtime=no])
                ])
 if test $gnupg_cv_func_gethrtime = yes; then
      AC_DEFINE([HAVE_GETHRTIME], 1,
                [Define if you have the `gethrtime(2)' function.])
      AC_CACHE_CHECK([whether gethrtime is broken],
                [gnupg_cv_func_broken_gethrtime],
-               [AC_TRY_RUN([
+               [AC_RUN_IFELSE([AC_LANG_SOURCE([[
                    #include <sys/times.h>
                    int main () {
                    hrtime_t tv;
                    tv = gethrtime();
                  }
-                 ],
-                 [gnupg_cv_func_broken_gethrtime=no],
-                 [gnupg_cv_func_broken_gethrtime=yes],
-                 [gnupg_cv_func_broken_gethrtime=assume-no])
+                 ]])],[gnupg_cv_func_broken_gethrtime=no],[gnupg_cv_func_broken_gethrtime=yes],[gnupg_cv_func_broken_gethrtime=assume-no])
                 ])
     if test $gnupg_cv_func_broken_gethrtime = yes; then
       AC_DEFINE([HAVE_BROKEN_GETHRTIME], 1,
@@ -1120,10 +1137,14 @@ fi
 
 
 GNUPG_CHECK_IPC
-if test "$ac_cv_header_sys_shm_h" = "yes"; then
-  AC_DEFINE(USE_SHM_COPROCESSING,1,
-            [define if the shared memory interface should be made available])
-fi
+
+dnl
+dnl if test "$ac_cv_header_sys_shm_h" = "yes"; then
+dnl   AC_DEFINE(USE_SHM_COPROCESSING,1,
+dnl             [define if the shared memory interface should be made available])
+dnl fi
+dnl
+
 
 AM_CONDITIONAL(HAVE_SHM, test "$ac_cv_header_sys_shm_h" = yes)
 
@@ -1246,16 +1267,14 @@ AC_SUBST(MPI_SFLAGS)
 
 AC_MSG_CHECKING([whether regular expression support is requested])
 AC_ARG_ENABLE(regex,
-  AC_HELP_STRING([--disable-regex],
-    [do not handle regular expressions in trust signatures]),
+  AS_HELP_STRING([--disable-regex],[do not handle regular expressions in trust signatures]),
   use_regex=$enableval, use_regex=yes)
 AC_MSG_RESULT($use_regex)
 
 if test "$use_regex" = yes ; then
   AC_MSG_CHECKING([whether the included regex lib is requested])
   AC_ARG_WITH(included-regex,
-      AC_HELP_STRING([--with-included-regex],
-                     [use the included GNU regex library]),
+      AS_HELP_STRING([--with-included-regex],[use the included GNU regex library]),
       [gnupg_cv_included_regex="$withval"],[gnupg_cv_included_regex=no])
   AC_MSG_RESULT($gnupg_cv_included_regex)
 
@@ -1268,11 +1287,10 @@ if test "$use_regex" = yes ; then
   if test $gnupg_cv_included_regex = no ; then
      AC_CACHE_CHECK([whether your system's regexp library is broken],
        [gnupg_cv_regex_broken],
-       AC_TRY_RUN([
+       AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <unistd.h>
 #include <regex.h>
-main() { regex_t blah ; regmatch_t p; p.rm_eo = p.rm_eo; return regcomp(&blah, "foo.*bar", REG_NOSUB) || regexec (&blah, "foobar", 0, NULL, 0); }],
-       gnupg_cv_regex_broken=no, gnupg_cv_regex_broken=yes, gnupg_cv_regex_broken=yes))
+main() { regex_t blah ; regmatch_t p; p.rm_eo = p.rm_eo; return regcomp(&blah, "foo.*bar", REG_NOSUB) || regexec (&blah, "foobar", 0, NULL, 0); }]])],[gnupg_cv_regex_broken=no],[gnupg_cv_regex_broken=yes],[gnupg_cv_regex_broken=yes]))
 
      if test $gnupg_cv_regex_broken = yes ; then
       AC_MSG_WARN(your regex is broken - using the included GNU regex instead.)
@@ -1299,7 +1317,7 @@ else
   _ldflags="${LDFLAGS}"
 
   AC_ARG_WITH(zlib,
-     AC_HELP_STRING([--with-zlib=DIR],[use libz in DIR]),[
+     AS_HELP_STRING([--with-zlib=DIR],[use libz in DIR]),[
     if test -d "$withval"; then
       CPPFLAGS="${CPPFLAGS} -I$withval/include"
       LDFLAGS="${LDFLAGS} -L$withval/lib"
@@ -1334,7 +1352,7 @@ else
   _cppflags="${CPPFLAGS}"
   _ldflags="${LDFLAGS}"
   AC_ARG_WITH(bzip2,
-     AC_HELP_STRING([--with-bzip2=DIR],[look for bzip2 in DIR]),
+     AS_HELP_STRING([--with-bzip2=DIR],[look for bzip2 in DIR]),
       [
       if test -d "$withval" ; then
         CPPFLAGS="${CPPFLAGS} -I$withval/include"
@@ -1420,8 +1438,7 @@ if test "$GCC" = yes; then
     # This is handy for debugging so the compiler doesn't rearrange
     # things and eliminate variables.
     AC_ARG_ENABLE(optimization,
-       AC_HELP_STRING([--disable-optimization],
-		      [disable compiler optimization]),
+       AS_HELP_STRING([--disable-optimization],[disable compiler optimization]),
                       [if test $enableval = no ; then
                          CFLAGS=`echo $CFLAGS | sed 's/-O[[0-9]]//'`
                        fi])

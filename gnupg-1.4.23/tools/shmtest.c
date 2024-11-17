@@ -110,7 +110,7 @@ main(int argc, char **argv)
 
     log_set_name("shmtest");
     i18n_init();
-#ifndef USE_SHM_COPROCESSING_ALWAYS
+#ifndef USE_SHM_COPROCESSING
     log_info("SHM_COPRPOCESSING is not available\n");
 #else
     if( argc < 1 )
