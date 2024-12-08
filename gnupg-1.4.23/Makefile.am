@@ -39,17 +39,9 @@ bzlib =
 endif
 
 SUBDIRS = m4 intl zlib ${bzlib} util mpi cipher tools \
-          g10 keyserver po doc ${checks}
+          g10 keyserver po ${checks}
 
-EXTRA_DIST = scripts/config.rpath PROJECTS BUGS config.h.in	\
-             autogen.sh ChangeLog-2011 po/ChangeLog-2011	\
-             util/ChangeLog-2011 scripts/ChangeLog-2011		\
-             doc/ChangeLog-2011 tools/ChangeLog-2011		\
-             zlib/ChangeLog-2011 m4/ChangeLog-2011		\
-             include/ChangeLog-2011 g10/ChangeLog-2011		\
-             checks/ChangeLog-2011 cipher/ChangeLog-2011	\
-             intl/ChangeLog-2011 keyserver/ChangeLog-2011	\
-             tests/ChangeLog-2011 mpi/ChangeLog-2011
+EXTRA_DIST = 
 
 
 DISTCLEANFILES =
