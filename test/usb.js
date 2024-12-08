@@ -1,11 +1,3 @@
-
-var gpg = (() => {
-  var _scriptName = typeof document != 'undefined' ? document.currentScript?.src : undefined;
-  if (typeof __filename != 'undefined') _scriptName = _scriptName || __filename;
-  return (
-function(moduleArg = {}) {
-  var moduleRtn;
-
 // Support for growable heap + pthreads, where the buffer may change, so JS views
 // must be updated.
 function GROWABLE_HEAP_I8() {
@@ -71,24 +63,7 @@ function GROWABLE_HEAP_F64() {
 // after the generated code, you will need to define   var Module = {};
 // before the code. Then that object will be used in the code, and you
 // can continue to use Module afterwards as well.
-var Module = moduleArg;
-
-// Set up the promise that indicates the Module is initialized
-var readyPromiseResolve, readyPromiseReject;
-
-var readyPromise = new Promise((resolve, reject) => {
-  readyPromiseResolve = resolve;
-  readyPromiseReject = reject;
-});
-
-[ "_gpg_cli_main", "_malloc", "___indirect_function_table", "___asyncjs__em_libusb_wait_async", "_usbi_em_promise_catch", "_usbi_em_copy_from_dataview", "_usbi_em_device_safe_open_close", "onRuntimeInitialized" ].forEach(prop => {
-  if (!Object.getOwnPropertyDescriptor(readyPromise, prop)) {
-    Object.defineProperty(readyPromise, prop, {
-      get: () => abort("You are getting " + prop + " on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js"),
-      set: () => abort("You are setting " + prop + " on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js")
-    });
-  }
-});
+var Module = typeof Module != "undefined" ? Module : {};
 
 // Determine the runtime environment we are in. You can customize this by
 // setting the ENVIRONMENT setting at compile time (see settings.js).
@@ -111,11 +86,6 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 // it with a specific name.
 var ENVIRONMENT_IS_PTHREAD = ENVIRONMENT_IS_WORKER && self.name?.startsWith("em-pthread");
 
-if (ENVIRONMENT_IS_PTHREAD) {
-  assert(!globalThis.moduleLoaded, "module should only be loaded once on each pthread worker");
-  globalThis.moduleLoaded = true;
-}
-
 if (ENVIRONMENT_IS_NODE) {
   // `require()` is no-op in an ESM module, use `createRequire()` to construct
   // the require()` function.  This is only necessary for multi-environment
@@ -131,69 +101,6 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /home/yang/wasm/gnupg-1.4.23/g10/bind.js
-// https://github.com/ffmpegwasm/ffmpeg.wasm/blob/main/src/bind/ffmpeg/bind.js
-const NULL = 0;
-
-const SIZE_I32 = Uint32Array.BYTES_PER_ELEMENT;
-
-const DEFAULT_ARGS = [ "gpg" ];
-
-Module["NULL"] = NULL;
-
-Module["SIZE_I32"] = SIZE_I32;
-
-Module["DEFAULT_ARGS"] = DEFAULT_ARGS;
-
-Module["ret"] = -1;
-
-function stringToPtr(str) {
-  const len = Module["lengthBytesUTF8"](str) + 1;
-  const ptr = Module["_malloc"](len);
-  Module["stringToUTF8"](str, ptr, len);
-  return ptr;
-}
-
-function stringsToPtr(strs) {
-  const len = strs.length;
-  const ptr = Module["_malloc"](len * SIZE_I32);
-  for (let i = 0; i < len; i++) {
-    Module["setValue"](ptr + SIZE_I32 * i, stringToPtr(strs[i]), "i32");
-  }
-  return ptr;
-}
-
-function exec(args) {
-  const final_args = [ ...Module["DEFAULT_ARGS"], ...args ];
-  try {
-    Module["_gpg_cli_main"](final_args.length, stringsToPtr(final_args));
-  } catch (e) {
-    if (e.name === "ExitStatus") {
-      //   if (e.status === 0) {
-      //     return 0;
-      //   } else {
-      //     throw e;
-      //   }
-      return e.status;
-    } else {
-      throw e;
-    }
-  }
-}
-
-function reset() {
-  Module["ret"] = -1;
-}
-
-Module["stringToPtr"] = stringToPtr;
-
-Module["stringsToPtr"] = stringsToPtr;
-
-Module["exec"] = exec;
-
-Module["reset"] = reset;
-
-// end include: /home/yang/wasm/gnupg-1.4.23/g10/bind.js
 // Sometimes an existing Module object exists with properties
 // meant to overwrite the default module functionality. Here
 // we collect those properties and reapply _after_ we configure
@@ -208,6 +115,16 @@ var thisProgram = "./this.program";
 var quit_ = (status, toThrow) => {
   throw toThrow;
 };
+
+// In MODULARIZE mode _scriptName needs to be captured already at the very top of the page immediately when the page is parsed, so it is generated there
+// before the page load. In non-MODULARIZE modes generate it here.
+var _scriptName = (typeof document != "undefined") ? document.currentScript?.src : undefined;
+
+if (ENVIRONMENT_IS_NODE) {
+  _scriptName = __filename;
+} else if (ENVIRONMENT_IS_WORKER) {
+  _scriptName = self.location.href;
+}
 
 // `/` should be present at the end if `scriptDirectory` is not empty
 var scriptDirectory = "";
@@ -259,7 +176,9 @@ if (ENVIRONMENT_IS_NODE) {
     thisProgram = process.argv[1].replace(/\\/g, "/");
   }
   arguments_ = process.argv.slice(2);
-  // MODULARIZE will export the module in the proper place outside, we don't need to export here
+  if (typeof module != "undefined") {
+    module["exports"] = Module;
+  }
   quit_ = (status, toThrow) => {
     process.exitCode = status;
     throw toThrow;
@@ -276,11 +195,6 @@ if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
   } else if (typeof document != "undefined" && document.currentScript) {
     // web
     scriptDirectory = document.currentScript.src;
-  }
-  // When MODULARIZE, this JS may be executed later, after document.currentScript
-  // is gone, so we saved it, and we use it here instead of any other info.
-  if (_scriptName) {
-    scriptDirectory = _scriptName;
   }
   // blob urls look like blob:http://site.com/etc/etc and we cannot infer anything from them.
   // otherwise, slice off the final part of the url to find the script directory.
@@ -735,6 +649,9 @@ var __ATPRERUN__ = [];
 var __ATINIT__ = [];
 
 // functions called during startup
+var __ATMAIN__ = [];
+
+// functions called when main() is to be run
 var __ATEXIT__ = [];
 
 // functions called during shutdown
@@ -767,6 +684,13 @@ function initRuntime() {
   callRuntimeCallbacks(__ATINIT__);
 }
 
+function preMain() {
+  checkStackCookie();
+  if (ENVIRONMENT_IS_PTHREAD) return;
+  // PThreads reuse the runtime from the main thread.
+  callRuntimeCallbacks(__ATMAIN__);
+}
+
 function postRun() {
   checkStackCookie();
   if (ENVIRONMENT_IS_PTHREAD) return;
@@ -786,6 +710,10 @@ function addOnPreRun(cb) {
 
 function addOnInit(cb) {
   __ATINIT__.unshift(cb);
+}
+
+function addOnPreMain(cb) {
+  __ATMAIN__.unshift(cb);
 }
 
 function addOnExit(cb) {}
@@ -909,7 +837,6 @@ function removeRunDependency(id) {
   // though it can.
   // TODO(https://github.com/google/closure-compiler/pull/3913): Remove if/when upstream closure gets fixed.
   /** @suppress {checkTypes} */ var e = new WebAssembly.RuntimeError(what);
-  readyPromiseReject(e);
   // Throw the error whether or not MODULARIZE is set because abort is used
   // in code paths apart from instantiation where an exception is expected
   // to be thrown when abort is called.
@@ -947,7 +874,7 @@ function createExportWrapper(name, nargs) {
 // include: runtime_exceptions.js
 // end include: runtime_exceptions.js
 function findWasmBinary() {
-  var f = "gpg.wasm";
+  var f = "usb.wasm";
   if (!isDataURI(f)) {
     return locateFile(f);
   }
@@ -1076,13 +1003,11 @@ function createWasm() {
       return Module["instantiateWasm"](info, receiveInstance);
     } catch (e) {
       err(`Module.instantiateWasm callback failed with error: ${e}`);
-      // If instantiation fails, reject the module ready promise.
-      readyPromiseReject(e);
+      return false;
     }
   }
   wasmBinaryFile ??= findWasmBinary();
-  // If instantiation fails, reject the module ready promise.
-  instantiateAsync(wasmBinary, wasmBinaryFile, info, receiveInstantiationResult).catch(readyPromiseReject);
+  instantiateAsync(wasmBinary, wasmBinaryFile, info, receiveInstantiationResult);
   return {};
 }
 
@@ -1132,14 +1057,18 @@ function isExportedByForceFilesystem(name) {
  * Intercept access to a global symbol.  This enables us to give informative
  * warnings/errors when folks attempt to use symbols they did not include in
  * their build, or no symbols that no longer exist.
- */ function hookGlobalSymbolAccess(sym, func) {}
+ */ function hookGlobalSymbolAccess(sym, func) {
+  if (typeof globalThis != "undefined" && !Object.getOwnPropertyDescriptor(globalThis, sym)) {
+    Object.defineProperty(globalThis, sym, {
+      configurable: true,
+      get() {
+        func();
+        return undefined;
+      }
+    });
+  }
+}
 
-// In MODULARIZE mode the generated code runs inside a function scope and not
-// the global scope, and JavaScript does not provide access to function scopes
-// so we cannot dynamically modify the scrope using `defineProperty` in this
-// case.
-// In this mode we simply ignore requests for `hookGlobalSymbolAccess`. Since
-// this is a debug-only feature, skipping it is not major issue.
 function missingGlobal(sym, msg) {
   hookGlobalSymbolAccess(sym, () => {
     warnOnce(`\`${sym}\` is not longer defined by emscripten. ${msg}`);
@@ -1427,7 +1356,6 @@ function exitOnMainThread(returnCode) {
   // if exit() was called explicitly, warn the user if the runtime isn't actually being shut down
   if (keepRuntimeAlive() && !implicit) {
     var msg = `program exited (with status: ${status}), but keepRuntimeAlive() is set (counter=${runtimeKeepaliveCounter}) due to an async operation, so halting execution but not exiting the runtime or preventing further async execution (you can use emscripten_force_exit, if you want to force a true shutdown)`;
-    readyPromiseReject(msg);
     err(msg);
   }
   _proc_exit(status);
@@ -1864,8 +1792,6 @@ var ___assert_fail = (condition, filename, line, func) => {
   abort(`Assertion failed: ${UTF8ToString(condition)}, at: ` + [ filename ? UTF8ToString(filename) : "unknown filename", line, func ? UTF8ToString(func) : "unknown function" ]);
 };
 
-var ___call_sighandler = (fp, sig) => (a1 => dynCall_vi(fp, a1))(sig);
-
 class ExceptionInfo {
   // excPtr - Thrown object pointer to wrap. Metadata pointer is calculated from it.
   constructor(excPtr) {
@@ -1924,6 +1850,16 @@ var ___cxa_throw = (ptr, type, destructor) => {
   uncaughtExceptionCount++;
   assert(false, "Exception thrown, but exception catching is not enabled. Compile with -sNO_DISABLE_EXCEPTION_CATCHING or -sEXCEPTION_CATCHING_ALLOWED=[..] to catch.");
 };
+
+/** @suppress {duplicate } */ var syscallGetVarargI = () => {
+  assert(SYSCALLS.varargs != undefined);
+  // the `+` prepended here is necessary to convince the JSCompiler that varargs is indeed a number.
+  var ret = GROWABLE_HEAP_I32()[((+SYSCALLS.varargs) >> 2)];
+  SYSCALLS.varargs += 4;
+  return ret;
+};
+
+var syscallGetVarargP = syscallGetVarargI;
 
 var PATH = {
   isAbs: path => path.charAt(0) === "/",
@@ -2348,10 +2284,7 @@ var alignMemory = (size, alignment) => {
 };
 
 var mmapAlloc = size => {
-  size = alignMemory(size, 65536);
-  var ptr = _emscripten_builtin_memalign(65536, size);
-  if (ptr) zeroMemory(ptr, size);
-  return ptr;
+  abort("internal error: mmapAlloc called but `emscripten_builtin_memalign` native symbol not exported");
 };
 
 var MEMFS = {
@@ -4590,134 +4523,8 @@ var SYSCALLS = {
   }
 };
 
-var ___syscall__newselect = function(nfds, readfds, writefds, exceptfds, timeout) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(2, 0, 1, nfds, readfds, writefds, exceptfds, timeout);
-  try {
-    // readfds are supported,
-    // writefds checks socket open status
-    // exceptfds are supported, although on web, such exceptional conditions never arise in web sockets
-    //                          and so the exceptfds list will always return empty.
-    // timeout is supported, although on SOCKFS and PIPEFS these are ignored and always treated as 0 - fully async
-    assert(nfds <= 64, "nfds must be less than or equal to 64");
-    // fd sets have 64 bits // TODO: this could be 1024 based on current musl headers
-    var total = 0;
-    var srcReadLow = (readfds ? GROWABLE_HEAP_I32()[((readfds) >> 2)] : 0), srcReadHigh = (readfds ? GROWABLE_HEAP_I32()[(((readfds) + (4)) >> 2)] : 0);
-    var srcWriteLow = (writefds ? GROWABLE_HEAP_I32()[((writefds) >> 2)] : 0), srcWriteHigh = (writefds ? GROWABLE_HEAP_I32()[(((writefds) + (4)) >> 2)] : 0);
-    var srcExceptLow = (exceptfds ? GROWABLE_HEAP_I32()[((exceptfds) >> 2)] : 0), srcExceptHigh = (exceptfds ? GROWABLE_HEAP_I32()[(((exceptfds) + (4)) >> 2)] : 0);
-    var dstReadLow = 0, dstReadHigh = 0;
-    var dstWriteLow = 0, dstWriteHigh = 0;
-    var dstExceptLow = 0, dstExceptHigh = 0;
-    var allLow = (readfds ? GROWABLE_HEAP_I32()[((readfds) >> 2)] : 0) | (writefds ? GROWABLE_HEAP_I32()[((writefds) >> 2)] : 0) | (exceptfds ? GROWABLE_HEAP_I32()[((exceptfds) >> 2)] : 0);
-    var allHigh = (readfds ? GROWABLE_HEAP_I32()[(((readfds) + (4)) >> 2)] : 0) | (writefds ? GROWABLE_HEAP_I32()[(((writefds) + (4)) >> 2)] : 0) | (exceptfds ? GROWABLE_HEAP_I32()[(((exceptfds) + (4)) >> 2)] : 0);
-    var check = (fd, low, high, val) => fd < 32 ? (low & val) : (high & val);
-    for (var fd = 0; fd < nfds; fd++) {
-      var mask = 1 << (fd % 32);
-      if (!(check(fd, allLow, allHigh, mask))) {
-        continue;
-      }
-      // index isn't in the set
-      var stream = SYSCALLS.getStreamFromFD(fd);
-      var flags = SYSCALLS.DEFAULT_POLLMASK;
-      if (stream.stream_ops.poll) {
-        var timeoutInMillis = -1;
-        if (timeout) {
-          // select(2) is declared to accept "struct timeval { time_t tv_sec; suseconds_t tv_usec; }".
-          // However, musl passes the two values to the syscall as an array of long values.
-          // Note that sizeof(time_t) != sizeof(long) in wasm32. The former is 8, while the latter is 4.
-          // This means using "C_STRUCTS.timeval.tv_usec" leads to a wrong offset.
-          // So, instead, we use POINTER_SIZE.
-          var tv_sec = (readfds ? GROWABLE_HEAP_I32()[((timeout) >> 2)] : 0), tv_usec = (readfds ? GROWABLE_HEAP_I32()[(((timeout) + (4)) >> 2)] : 0);
-          timeoutInMillis = (tv_sec + tv_usec / 1e6) * 1e3;
-        }
-        flags = stream.stream_ops.poll(stream, timeoutInMillis);
-      }
-      if ((flags & 1) && check(fd, srcReadLow, srcReadHigh, mask)) {
-        fd < 32 ? (dstReadLow = dstReadLow | mask) : (dstReadHigh = dstReadHigh | mask);
-        total++;
-      }
-      if ((flags & 4) && check(fd, srcWriteLow, srcWriteHigh, mask)) {
-        fd < 32 ? (dstWriteLow = dstWriteLow | mask) : (dstWriteHigh = dstWriteHigh | mask);
-        total++;
-      }
-      if ((flags & 2) && check(fd, srcExceptLow, srcExceptHigh, mask)) {
-        fd < 32 ? (dstExceptLow = dstExceptLow | mask) : (dstExceptHigh = dstExceptHigh | mask);
-        total++;
-      }
-    }
-    if (readfds) {
-      GROWABLE_HEAP_I32()[((readfds) >> 2)] = dstReadLow;
-      GROWABLE_HEAP_I32()[(((readfds) + (4)) >> 2)] = dstReadHigh;
-    }
-    if (writefds) {
-      GROWABLE_HEAP_I32()[((writefds) >> 2)] = dstWriteLow;
-      GROWABLE_HEAP_I32()[(((writefds) + (4)) >> 2)] = dstWriteHigh;
-    }
-    if (exceptfds) {
-      GROWABLE_HEAP_I32()[((exceptfds) >> 2)] = dstExceptLow;
-      GROWABLE_HEAP_I32()[(((exceptfds) + (4)) >> 2)] = dstExceptHigh;
-    }
-    return total;
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-};
-
-function ___syscall_chmod(path, mode) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(3, 0, 1, path, mode);
-  try {
-    path = SYSCALLS.getStr(path);
-    FS.chmod(path, mode);
-    return 0;
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function ___syscall_faccessat(dirfd, path, amode, flags) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(4, 0, 1, dirfd, path, amode, flags);
-  try {
-    path = SYSCALLS.getStr(path);
-    assert(flags === 0 || flags == 512);
-    path = SYSCALLS.calculateAt(dirfd, path);
-    if (amode & ~7) {
-      // need a valid mode
-      return -28;
-    }
-    var lookup = FS.lookupPath(path, {
-      follow: true
-    });
-    var node = lookup.node;
-    if (!node) {
-      return -44;
-    }
-    var perms = "";
-    if (amode & 4) perms += "r";
-    if (amode & 2) perms += "w";
-    if (amode & 1) perms += "x";
-    if (perms && /* otherwise, they've just passed F_OK */ FS.nodePermissions(node, perms)) {
-      return -2;
-    }
-    return 0;
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-/** @suppress {duplicate } */ var syscallGetVarargI = () => {
-  assert(SYSCALLS.varargs != undefined);
-  // the `+` prepended here is necessary to convince the JSCompiler that varargs is indeed a number.
-  var ret = GROWABLE_HEAP_I32()[((+SYSCALLS.varargs) >> 2)];
-  SYSCALLS.varargs += 4;
-  return ret;
-};
-
-var syscallGetVarargP = syscallGetVarargI;
-
 function ___syscall_fcntl64(fd, cmd, varargs) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(5, 0, 1, fd, cmd, varargs);
+  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(2, 0, 1, fd, cmd, varargs);
   SYSCALLS.varargs = varargs;
   try {
     var stream = SYSCALLS.getStreamFromFD(fd);
@@ -4766,214 +4573,6 @@ function ___syscall_fcntl64(fd, cmd, varargs) {
     }
     // Pretend that the locking is successful.
     return -28;
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function ___syscall_fstat64(fd, buf) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(6, 0, 1, fd, buf);
-  try {
-    var stream = SYSCALLS.getStreamFromFD(fd);
-    return SYSCALLS.doStat(FS.stat, stream.path, buf);
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function ___syscall_ftruncate64(fd, length_low, length_high) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(7, 0, 1, fd, length_low, length_high);
-  var length = convertI32PairToI53Checked(length_low, length_high);
-  try {
-    if (isNaN(length)) return 61;
-    FS.ftruncate(fd, length);
-    return 0;
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function ___syscall_ioctl(fd, op, varargs) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(8, 0, 1, fd, op, varargs);
-  SYSCALLS.varargs = varargs;
-  try {
-    var stream = SYSCALLS.getStreamFromFD(fd);
-    switch (op) {
-     case 21509:
-      {
-        if (!stream.tty) return -59;
-        return 0;
-      }
-
-     case 21505:
-      {
-        if (!stream.tty) return -59;
-        if (stream.tty.ops.ioctl_tcgets) {
-          var termios = stream.tty.ops.ioctl_tcgets(stream);
-          var argp = syscallGetVarargP();
-          GROWABLE_HEAP_I32()[((argp) >> 2)] = termios.c_iflag || 0;
-          GROWABLE_HEAP_I32()[(((argp) + (4)) >> 2)] = termios.c_oflag || 0;
-          GROWABLE_HEAP_I32()[(((argp) + (8)) >> 2)] = termios.c_cflag || 0;
-          GROWABLE_HEAP_I32()[(((argp) + (12)) >> 2)] = termios.c_lflag || 0;
-          for (var i = 0; i < 32; i++) {
-            GROWABLE_HEAP_I8()[(argp + i) + (17)] = termios.c_cc[i] || 0;
-          }
-          return 0;
-        }
-        return 0;
-      }
-
-     case 21510:
-     case 21511:
-     case 21512:
-      {
-        if (!stream.tty) return -59;
-        return 0;
-      }
-
-     // no-op, not actually adjusting terminal settings
-      case 21506:
-     case 21507:
-     case 21508:
-      {
-        if (!stream.tty) return -59;
-        if (stream.tty.ops.ioctl_tcsets) {
-          var argp = syscallGetVarargP();
-          var c_iflag = GROWABLE_HEAP_I32()[((argp) >> 2)];
-          var c_oflag = GROWABLE_HEAP_I32()[(((argp) + (4)) >> 2)];
-          var c_cflag = GROWABLE_HEAP_I32()[(((argp) + (8)) >> 2)];
-          var c_lflag = GROWABLE_HEAP_I32()[(((argp) + (12)) >> 2)];
-          var c_cc = [];
-          for (var i = 0; i < 32; i++) {
-            c_cc.push(GROWABLE_HEAP_I8()[(argp + i) + (17)]);
-          }
-          return stream.tty.ops.ioctl_tcsets(stream.tty, op, {
-            c_iflag,
-            c_oflag,
-            c_cflag,
-            c_lflag,
-            c_cc
-          });
-        }
-        return 0;
-      }
-
-     // no-op, not actually adjusting terminal settings
-      case 21519:
-      {
-        if (!stream.tty) return -59;
-        var argp = syscallGetVarargP();
-        GROWABLE_HEAP_I32()[((argp) >> 2)] = 0;
-        return 0;
-      }
-
-     case 21520:
-      {
-        if (!stream.tty) return -59;
-        return -28;
-      }
-
-     // not supported
-      case 21531:
-      {
-        var argp = syscallGetVarargP();
-        return FS.ioctl(stream, op, argp);
-      }
-
-     case 21523:
-      {
-        // TODO: in theory we should write to the winsize struct that gets
-        // passed in, but for now musl doesn't read anything on it
-        if (!stream.tty) return -59;
-        if (stream.tty.ops.ioctl_tiocgwinsz) {
-          var winsize = stream.tty.ops.ioctl_tiocgwinsz(stream.tty);
-          var argp = syscallGetVarargP();
-          GROWABLE_HEAP_I16()[((argp) >> 1)] = winsize[0];
-          GROWABLE_HEAP_I16()[(((argp) + (2)) >> 1)] = winsize[1];
-        }
-        return 0;
-      }
-
-     case 21524:
-      {
-        // TODO: technically, this ioctl call should change the window size.
-        // but, since emscripten doesn't have any concept of a terminal window
-        // yet, we'll just silently throw it away as we do TIOCGWINSZ
-        if (!stream.tty) return -59;
-        return 0;
-      }
-
-     case 21515:
-      {
-        if (!stream.tty) return -59;
-        return 0;
-      }
-
-     default:
-      return -28;
-    }
-  } // not supported
-  catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function ___syscall_lstat64(path, buf) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(9, 0, 1, path, buf);
-  try {
-    path = SYSCALLS.getStr(path);
-    return SYSCALLS.doStat(FS.lstat, path, buf);
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function ___syscall_mkdirat(dirfd, path, mode) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(10, 0, 1, dirfd, path, mode);
-  try {
-    path = SYSCALLS.getStr(path);
-    path = SYSCALLS.calculateAt(dirfd, path);
-    // remove a trailing slash, if one - /a/b/ has basename of '', but
-    // we want to create b in the context of this function
-    path = PATH.normalize(path);
-    if (path[path.length - 1] === "/") path = path.substr(0, path.length - 1);
-    FS.mkdir(path, mode, 0);
-    return 0;
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function ___syscall_newfstatat(dirfd, path, buf, flags) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(11, 0, 1, dirfd, path, buf, flags);
-  try {
-    path = SYSCALLS.getStr(path);
-    var nofollow = flags & 256;
-    var allowEmpty = flags & 4096;
-    flags = flags & (~6400);
-    assert(!flags, `unknown flags in __syscall_newfstatat: ${flags}`);
-    path = SYSCALLS.calculateAt(dirfd, path, allowEmpty);
-    return SYSCALLS.doStat(nofollow ? FS.lstat : FS.stat, path, buf);
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function ___syscall_openat(dirfd, path, flags, varargs) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(12, 0, 1, dirfd, path, flags, varargs);
-  SYSCALLS.varargs = varargs;
-  try {
-    path = SYSCALLS.getStr(path);
-    path = SYSCALLS.calculateAt(dirfd, path);
-    var mode = varargs ? syscallGetVarargI() : 0;
-    return FS.open(path, flags, mode).fd;
   } catch (e) {
     if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
     return -e.errno;
@@ -5168,7 +4767,7 @@ var PIPEFS = {
 };
 
 function ___syscall_pipe(fdPtr) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(13, 0, 1, fdPtr);
+  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(3, 0, 1, fdPtr);
   try {
     if (fdPtr == 0) {
       throw new FS.ErrnoError(21);
@@ -5184,7 +4783,7 @@ function ___syscall_pipe(fdPtr) {
 }
 
 function ___syscall_poll(fds, nfds, timeout) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(14, 0, 1, fds, nfds, timeout);
+  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(4, 0, 1, fds, nfds, timeout);
   try {
     var nonzero = 0;
     for (var i = 0; i < nfds; i++) {
@@ -5204,63 +4803,6 @@ function ___syscall_poll(fds, nfds, timeout) {
       GROWABLE_HEAP_I16()[(((pollfd) + (6)) >> 1)] = mask;
     }
     return nonzero;
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function ___syscall_renameat(olddirfd, oldpath, newdirfd, newpath) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(15, 0, 1, olddirfd, oldpath, newdirfd, newpath);
-  try {
-    oldpath = SYSCALLS.getStr(oldpath);
-    newpath = SYSCALLS.getStr(newpath);
-    oldpath = SYSCALLS.calculateAt(olddirfd, oldpath);
-    newpath = SYSCALLS.calculateAt(newdirfd, newpath);
-    FS.rename(oldpath, newpath);
-    return 0;
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function ___syscall_rmdir(path) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(16, 0, 1, path);
-  try {
-    path = SYSCALLS.getStr(path);
-    FS.rmdir(path);
-    return 0;
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function ___syscall_stat64(path, buf) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(17, 0, 1, path, buf);
-  try {
-    path = SYSCALLS.getStr(path);
-    return SYSCALLS.doStat(FS.stat, path, buf);
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function ___syscall_unlinkat(dirfd, path, flags) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(18, 0, 1, dirfd, path, flags);
-  try {
-    path = SYSCALLS.getStr(path);
-    path = SYSCALLS.calculateAt(dirfd, path);
-    if (flags === 0) {
-      FS.unlink(path);
-    } else if (flags === 512) {
-      FS.rmdir(path);
-    } else {
-      abort("Invalid flags passed to unlinkat");
-    }
-    return 0;
   } catch (e) {
     if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
     return -e.errno;
@@ -6000,11 +5542,6 @@ var __emscripten_receive_on_main_thread_js = (funcIndex, emAsmAddr, callingThrea
   return rtn;
 };
 
-var __emscripten_runtime_keepalive_clear = () => {
-  noExitRuntime = false;
-  runtimeKeepaliveCounter = 0;
-};
-
 var __emscripten_thread_cleanup = thread => {
   // Called when a thread needs to be cleaned up so it can be reused.
   // A thread is considered reusable when it either returns from its
@@ -6154,7 +5691,7 @@ var Asyncify = {
     Disabled: 3
   },
   state: 0,
-  StackSize: 10485760,
+  StackSize: 4096,
   currData: null,
   handleSleepReturnValue: 0,
   exportCallStack: [],
@@ -6557,194 +6094,6 @@ var __emval_take_value = (type, arg) => {
   return Emval.toHandle(v);
 };
 
-function __gmtime_js(time_low, time_high, tmPtr) {
-  var time = convertI32PairToI53Checked(time_low, time_high);
-  var date = new Date(time * 1e3);
-  GROWABLE_HEAP_I32()[((tmPtr) >> 2)] = date.getUTCSeconds();
-  GROWABLE_HEAP_I32()[(((tmPtr) + (4)) >> 2)] = date.getUTCMinutes();
-  GROWABLE_HEAP_I32()[(((tmPtr) + (8)) >> 2)] = date.getUTCHours();
-  GROWABLE_HEAP_I32()[(((tmPtr) + (12)) >> 2)] = date.getUTCDate();
-  GROWABLE_HEAP_I32()[(((tmPtr) + (16)) >> 2)] = date.getUTCMonth();
-  GROWABLE_HEAP_I32()[(((tmPtr) + (20)) >> 2)] = date.getUTCFullYear() - 1900;
-  GROWABLE_HEAP_I32()[(((tmPtr) + (24)) >> 2)] = date.getUTCDay();
-  var start = Date.UTC(date.getUTCFullYear(), 0, 1, 0, 0, 0, 0);
-  var yday = ((date.getTime() - start) / (1e3 * 60 * 60 * 24)) | 0;
-  GROWABLE_HEAP_I32()[(((tmPtr) + (28)) >> 2)] = yday;
-}
-
-var isLeapYear = year => year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-
-var MONTH_DAYS_LEAP_CUMULATIVE = [ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 ];
-
-var MONTH_DAYS_REGULAR_CUMULATIVE = [ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 ];
-
-var ydayFromDate = date => {
-  var leap = isLeapYear(date.getFullYear());
-  var monthDaysCumulative = (leap ? MONTH_DAYS_LEAP_CUMULATIVE : MONTH_DAYS_REGULAR_CUMULATIVE);
-  var yday = monthDaysCumulative[date.getMonth()] + date.getDate() - 1;
-  // -1 since it's days since Jan 1
-  return yday;
-};
-
-function __localtime_js(time_low, time_high, tmPtr) {
-  var time = convertI32PairToI53Checked(time_low, time_high);
-  var date = new Date(time * 1e3);
-  GROWABLE_HEAP_I32()[((tmPtr) >> 2)] = date.getSeconds();
-  GROWABLE_HEAP_I32()[(((tmPtr) + (4)) >> 2)] = date.getMinutes();
-  GROWABLE_HEAP_I32()[(((tmPtr) + (8)) >> 2)] = date.getHours();
-  GROWABLE_HEAP_I32()[(((tmPtr) + (12)) >> 2)] = date.getDate();
-  GROWABLE_HEAP_I32()[(((tmPtr) + (16)) >> 2)] = date.getMonth();
-  GROWABLE_HEAP_I32()[(((tmPtr) + (20)) >> 2)] = date.getFullYear() - 1900;
-  GROWABLE_HEAP_I32()[(((tmPtr) + (24)) >> 2)] = date.getDay();
-  var yday = ydayFromDate(date) | 0;
-  GROWABLE_HEAP_I32()[(((tmPtr) + (28)) >> 2)] = yday;
-  GROWABLE_HEAP_I32()[(((tmPtr) + (36)) >> 2)] = -(date.getTimezoneOffset() * 60);
-  // Attention: DST is in December in South, and some regions don't have DST at all.
-  var start = new Date(date.getFullYear(), 0, 1);
-  var summerOffset = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
-  var winterOffset = start.getTimezoneOffset();
-  var dst = (summerOffset != winterOffset && date.getTimezoneOffset() == Math.min(winterOffset, summerOffset)) | 0;
-  GROWABLE_HEAP_I32()[(((tmPtr) + (32)) >> 2)] = dst;
-}
-
-/** @suppress {duplicate } */ var setTempRet0 = val => __emscripten_tempret_set(val);
-
-var _setTempRet0 = setTempRet0;
-
-var __mktime_js = function(tmPtr) {
-  var ret = (() => {
-    var date = new Date(GROWABLE_HEAP_I32()[(((tmPtr) + (20)) >> 2)] + 1900, GROWABLE_HEAP_I32()[(((tmPtr) + (16)) >> 2)], GROWABLE_HEAP_I32()[(((tmPtr) + (12)) >> 2)], GROWABLE_HEAP_I32()[(((tmPtr) + (8)) >> 2)], GROWABLE_HEAP_I32()[(((tmPtr) + (4)) >> 2)], GROWABLE_HEAP_I32()[((tmPtr) >> 2)], 0);
-    // There's an ambiguous hour when the time goes back; the tm_isdst field is
-    // used to disambiguate it.  Date() basically guesses, so we fix it up if it
-    // guessed wrong, or fill in tm_isdst with the guess if it's -1.
-    var dst = GROWABLE_HEAP_I32()[(((tmPtr) + (32)) >> 2)];
-    var guessedOffset = date.getTimezoneOffset();
-    var start = new Date(date.getFullYear(), 0, 1);
-    var summerOffset = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
-    var winterOffset = start.getTimezoneOffset();
-    var dstOffset = Math.min(winterOffset, summerOffset);
-    // DST is in December in South
-    if (dst < 0) {
-      // Attention: some regions don't have DST at all.
-      GROWABLE_HEAP_I32()[(((tmPtr) + (32)) >> 2)] = Number(summerOffset != winterOffset && dstOffset == guessedOffset);
-    } else if ((dst > 0) != (dstOffset == guessedOffset)) {
-      var nonDstOffset = Math.max(winterOffset, summerOffset);
-      var trueOffset = dst > 0 ? dstOffset : nonDstOffset;
-      // Don't try setMinutes(date.getMinutes() + ...) -- it's messed up.
-      date.setTime(date.getTime() + (trueOffset - guessedOffset) * 6e4);
-    }
-    GROWABLE_HEAP_I32()[(((tmPtr) + (24)) >> 2)] = date.getDay();
-    var yday = ydayFromDate(date) | 0;
-    GROWABLE_HEAP_I32()[(((tmPtr) + (28)) >> 2)] = yday;
-    // To match expected behavior, update fields from date
-    GROWABLE_HEAP_I32()[((tmPtr) >> 2)] = date.getSeconds();
-    GROWABLE_HEAP_I32()[(((tmPtr) + (4)) >> 2)] = date.getMinutes();
-    GROWABLE_HEAP_I32()[(((tmPtr) + (8)) >> 2)] = date.getHours();
-    GROWABLE_HEAP_I32()[(((tmPtr) + (12)) >> 2)] = date.getDate();
-    GROWABLE_HEAP_I32()[(((tmPtr) + (16)) >> 2)] = date.getMonth();
-    GROWABLE_HEAP_I32()[(((tmPtr) + (20)) >> 2)] = date.getYear();
-    var timeMs = date.getTime();
-    if (isNaN(timeMs)) {
-      return -1;
-    }
-    // Return time in microseconds
-    return timeMs / 1e3;
-  })();
-  return (setTempRet0((tempDouble = ret, (+(Math.abs(tempDouble))) >= 1 ? (tempDouble > 0 ? (+(Math.floor((tempDouble) / 4294967296))) >>> 0 : (~~((+(Math.ceil((tempDouble - +(((~~(tempDouble))) >>> 0)) / 4294967296))))) >>> 0) : 0)), 
-  ret >>> 0);
-};
-
-function __mmap_js(len, prot, flags, fd, offset_low, offset_high, allocated, addr) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(19, 0, 1, len, prot, flags, fd, offset_low, offset_high, allocated, addr);
-  var offset = convertI32PairToI53Checked(offset_low, offset_high);
-  try {
-    if (isNaN(offset)) return 61;
-    var stream = SYSCALLS.getStreamFromFD(fd);
-    var res = FS.mmap(stream, len, offset, prot, flags);
-    var ptr = res.ptr;
-    GROWABLE_HEAP_I32()[((allocated) >> 2)] = res.allocated;
-    GROWABLE_HEAP_U32()[((addr) >> 2)] = ptr;
-    return 0;
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-function __munmap_js(addr, len, prot, flags, fd, offset_low, offset_high) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(20, 0, 1, addr, len, prot, flags, fd, offset_low, offset_high);
-  var offset = convertI32PairToI53Checked(offset_low, offset_high);
-  try {
-    var stream = SYSCALLS.getStreamFromFD(fd);
-    if (prot & 2) {
-      SYSCALLS.doMsync(addr, stream, len, flags, offset);
-    }
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return -e.errno;
-  }
-}
-
-var __timegm_js = function(tmPtr) {
-  var ret = (() => {
-    var time = Date.UTC(GROWABLE_HEAP_I32()[(((tmPtr) + (20)) >> 2)] + 1900, GROWABLE_HEAP_I32()[(((tmPtr) + (16)) >> 2)], GROWABLE_HEAP_I32()[(((tmPtr) + (12)) >> 2)], GROWABLE_HEAP_I32()[(((tmPtr) + (8)) >> 2)], GROWABLE_HEAP_I32()[(((tmPtr) + (4)) >> 2)], GROWABLE_HEAP_I32()[((tmPtr) >> 2)], 0);
-    var date = new Date(time);
-    GROWABLE_HEAP_I32()[(((tmPtr) + (24)) >> 2)] = date.getUTCDay();
-    var start = Date.UTC(date.getUTCFullYear(), 0, 1, 0, 0, 0, 0);
-    var yday = ((date.getTime() - start) / (1e3 * 60 * 60 * 24)) | 0;
-    GROWABLE_HEAP_I32()[(((tmPtr) + (28)) >> 2)] = yday;
-    return date.getTime() / 1e3;
-  })();
-  return (setTempRet0((tempDouble = ret, (+(Math.abs(tempDouble))) >= 1 ? (tempDouble > 0 ? (+(Math.floor((tempDouble) / 4294967296))) >>> 0 : (~~((+(Math.ceil((tempDouble - +(((~~(tempDouble))) >>> 0)) / 4294967296))))) >>> 0) : 0)), 
-  ret >>> 0);
-};
-
-var __tzset_js = (timezone, daylight, std_name, dst_name) => {
-  // TODO: Use (malleable) environment variables instead of system settings.
-  var currentYear = (new Date).getFullYear();
-  var winter = new Date(currentYear, 0, 1);
-  var summer = new Date(currentYear, 6, 1);
-  var winterOffset = winter.getTimezoneOffset();
-  var summerOffset = summer.getTimezoneOffset();
-  // Local standard timezone offset. Local standard time is not adjusted for
-  // daylight savings.  This code uses the fact that getTimezoneOffset returns
-  // a greater value during Standard Time versus Daylight Saving Time (DST).
-  // Thus it determines the expected output during Standard Time, and it
-  // compares whether the output of the given date the same (Standard) or less
-  // (DST).
-  var stdTimezoneOffset = Math.max(winterOffset, summerOffset);
-  // timezone is specified as seconds west of UTC ("The external variable
-  // `timezone` shall be set to the difference, in seconds, between
-  // Coordinated Universal Time (UTC) and local standard time."), the same
-  // as returned by stdTimezoneOffset.
-  // See http://pubs.opengroup.org/onlinepubs/009695399/functions/tzset.html
-  GROWABLE_HEAP_U32()[((timezone) >> 2)] = stdTimezoneOffset * 60;
-  GROWABLE_HEAP_I32()[((daylight) >> 2)] = Number(winterOffset != summerOffset);
-  var extractZone = timezoneOffset => {
-    // Why inverse sign?
-    // Read here https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/getTimezoneOffset
-    var sign = timezoneOffset >= 0 ? "-" : "+";
-    var absOffset = Math.abs(timezoneOffset);
-    var hours = String(Math.floor(absOffset / 60)).padStart(2, "0");
-    var minutes = String(absOffset % 60).padStart(2, "0");
-    return `UTC${sign}${hours}${minutes}`;
-  };
-  var winterName = extractZone(winterOffset);
-  var summerName = extractZone(summerOffset);
-  assert(winterName);
-  assert(summerName);
-  assert(lengthBytesUTF8(winterName) <= 16, `timezone name truncated to fit in TZNAME_MAX (${winterName})`);
-  assert(lengthBytesUTF8(summerName) <= 16, `timezone name truncated to fit in TZNAME_MAX (${summerName})`);
-  if (summerOffset < winterOffset) {
-    // Northern hemisphere
-    stringToUTF8(winterName, std_name, 17);
-    stringToUTF8(summerName, dst_name, 17);
-  } else {
-    stringToUTF8(winterName, dst_name, 17);
-    stringToUTF8(summerName, std_name, 17);
-  }
-};
-
 var _emscripten_check_blocking_allowed = () => {
   if (ENVIRONMENT_IS_NODE) return;
   if (ENVIRONMENT_IS_WORKER) return;
@@ -6754,24 +6103,18 @@ var _emscripten_check_blocking_allowed = () => {
 
 var _emscripten_date_now = () => Date.now();
 
-var _emscripten_err = str => err(UTF8ToString(str));
-
 var _emscripten_exit_with_live_runtime = () => {
   runtimeKeepalivePush();
   throw "unwind";
 };
+
+var _emscripten_get_now = () => performance.timeOrigin + performance.now();
 
 var getHeapMax = () => // Stay one Wasm page short of 4GB: while e.g. Chrome is able to allocate
 // full 4GB Wasm memories, the size will wrap back to 0 bytes in Wasm side
 // for any code that deals with heap sizes, which would require special
 // casing all heap size related code to treat 0 specially.
 2147483648;
-
-var _emscripten_get_heap_max = () => getHeapMax();
-
-var _emscripten_get_now = () => performance.timeOrigin + performance.now();
-
-var _emscripten_num_logical_cores = () => ENVIRONMENT_IS_NODE ? require("os").cpus().length : navigator["hardwareConcurrency"];
 
 var growMemory = size => {
   var b = wasmMemory.buffer;
@@ -6883,7 +6226,7 @@ var stringToAscii = (str, buffer) => {
 };
 
 var _environ_get = function(__environ, environ_buf) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(21, 0, 1, __environ, environ_buf);
+  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(5, 0, 1, __environ, environ_buf);
   var bufSize = 0;
   getEnvStrings().forEach((string, i) => {
     var ptr = environ_buf + bufSize;
@@ -6895,7 +6238,7 @@ var _environ_get = function(__environ, environ_buf) {
 };
 
 var _environ_sizes_get = function(penviron_count, penviron_buf_size) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(22, 0, 1, penviron_count, penviron_buf_size);
+  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(6, 0, 1, penviron_count, penviron_buf_size);
   var strings = getEnvStrings();
   GROWABLE_HEAP_U32()[((penviron_count) >> 2)] = strings.length;
   var bufSize = 0;
@@ -6905,35 +6248,10 @@ var _environ_sizes_get = function(penviron_count, penviron_buf_size) {
 };
 
 function _fd_close(fd) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(23, 0, 1, fd);
+  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(7, 0, 1, fd);
   try {
     var stream = SYSCALLS.getStreamFromFD(fd);
     FS.close(stream);
-    return 0;
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return e.errno;
-  }
-}
-
-function _fd_fdstat_get(fd, pbuf) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(24, 0, 1, fd, pbuf);
-  try {
-    var rightsBase = 0;
-    var rightsInheriting = 0;
-    var flags = 0;
-    {
-      var stream = SYSCALLS.getStreamFromFD(fd);
-      // All character devices are terminals (other things a Linux system would
-      // assume is a character device, like the mouse, we have special APIs for).
-      var type = stream.tty ? 2 : FS.isDir(stream.mode) ? 3 : FS.isLink(stream.mode) ? 7 : 4;
-    }
-    GROWABLE_HEAP_I8()[pbuf] = type;
-    GROWABLE_HEAP_I16()[(((pbuf) + (2)) >> 1)] = flags;
-    (tempI64 = [ rightsBase >>> 0, (tempDouble = rightsBase, (+(Math.abs(tempDouble))) >= 1 ? (tempDouble > 0 ? (+(Math.floor((tempDouble) / 4294967296))) >>> 0 : (~~((+(Math.ceil((tempDouble - +(((~~(tempDouble))) >>> 0)) / 4294967296))))) >>> 0) : 0) ], 
-    GROWABLE_HEAP_I32()[(((pbuf) + (8)) >> 2)] = tempI64[0], GROWABLE_HEAP_I32()[(((pbuf) + (12)) >> 2)] = tempI64[1]);
-    (tempI64 = [ rightsInheriting >>> 0, (tempDouble = rightsInheriting, (+(Math.abs(tempDouble))) >= 1 ? (tempDouble > 0 ? (+(Math.floor((tempDouble) / 4294967296))) >>> 0 : (~~((+(Math.ceil((tempDouble - +(((~~(tempDouble))) >>> 0)) / 4294967296))))) >>> 0) : 0) ], 
-    GROWABLE_HEAP_I32()[(((pbuf) + (16)) >> 2)] = tempI64[0], GROWABLE_HEAP_I32()[(((pbuf) + (20)) >> 2)] = tempI64[1]);
     return 0;
   } catch (e) {
     if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
@@ -6960,7 +6278,7 @@ function _fd_fdstat_get(fd, pbuf) {
 };
 
 function _fd_read(fd, iov, iovcnt, pnum) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(25, 0, 1, fd, iov, iovcnt, pnum);
+  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(8, 0, 1, fd, iov, iovcnt, pnum);
   try {
     var stream = SYSCALLS.getStreamFromFD(fd);
     var num = doReadv(stream, iov, iovcnt);
@@ -6973,7 +6291,7 @@ function _fd_read(fd, iov, iovcnt, pnum) {
 }
 
 function _fd_seek(fd, offset_low, offset_high, whence, newOffset) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(26, 0, 1, fd, offset_low, offset_high, whence, newOffset);
+  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(9, 0, 1, fd, offset_low, offset_high, whence, newOffset);
   var offset = convertI32PairToI53Checked(offset_low, offset_high);
   try {
     if (isNaN(offset)) return 61;
@@ -6989,33 +6307,6 @@ function _fd_seek(fd, offset_low, offset_high, whence, newOffset) {
     return e.errno;
   }
 }
-
-var _fd_sync = function(fd) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(27, 0, 1, fd);
-  try {
-    var stream = SYSCALLS.getStreamFromFD(fd);
-    return Asyncify.handleSleep(wakeUp => {
-      var mount = stream.node.mount;
-      if (!mount.type.syncfs) {
-        // We write directly to the file system, so there's nothing to do here.
-        wakeUp(0);
-        return;
-      }
-      mount.type.syncfs(mount, false, err => {
-        if (err) {
-          wakeUp(29);
-          return;
-        }
-        wakeUp(0);
-      });
-    });
-  } catch (e) {
-    if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
-    return e.errno;
-  }
-};
-
-_fd_sync.isAsync = true;
 
 /** @param {number=} offset */ var doWritev = (stream, iov, iovcnt, offset) => {
   var ret = 0;
@@ -7038,7 +6329,7 @@ _fd_sync.isAsync = true;
 };
 
 function _fd_write(fd, iov, iovcnt, pnum) {
-  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(28, 0, 1, fd, iov, iovcnt, pnum);
+  if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(10, 0, 1, fd, iov, iovcnt, pnum);
   try {
     var stream = SYSCALLS.getStreamFromFD(fd);
     var num = doWritev(stream, iov, iovcnt);
@@ -7050,99 +6341,10 @@ function _fd_write(fd, iov, iovcnt, pnum) {
   }
 }
 
-var getCFunc = ident => {
-  var func = Module["_" + ident];
-  // closure exported function
-  assert(func, "Cannot call unknown function " + ident + ", make sure it is exported");
-  return func;
-};
-
-var writeArrayToMemory = (array, buffer) => {
-  assert(array.length >= 0, "writeArrayToMemory array must have a length (should be an array or typed array)");
-  GROWABLE_HEAP_I8().set(array, buffer);
-};
-
 var stringToUTF8OnStack = str => {
   var size = lengthBytesUTF8(str) + 1;
   var ret = stackAlloc(size);
   stringToUTF8(str, ret, size);
-  return ret;
-};
-
-/**
-     * @param {string|null=} returnType
-     * @param {Array=} argTypes
-     * @param {Arguments|Array=} args
-     * @param {Object=} opts
-     */ var ccall = (ident, returnType, argTypes, args, opts) => {
-  // For fast lookup of conversion functions
-  var toC = {
-    "string": str => {
-      var ret = 0;
-      if (str !== null && str !== undefined && str !== 0) {
-        // null string
-        ret = stringToUTF8OnStack(str);
-      }
-      return ret;
-    },
-    "array": arr => {
-      var ret = stackAlloc(arr.length);
-      writeArrayToMemory(arr, ret);
-      return ret;
-    }
-  };
-  function convertReturnValue(ret) {
-    if (returnType === "string") {
-      return UTF8ToString(ret);
-    }
-    if (returnType === "boolean") return Boolean(ret);
-    return ret;
-  }
-  var func = getCFunc(ident);
-  var cArgs = [];
-  var stack = 0;
-  assert(returnType !== "array", 'Return type should not be "array".');
-  if (args) {
-    for (var i = 0; i < args.length; i++) {
-      var converter = toC[argTypes[i]];
-      if (converter) {
-        if (stack === 0) stack = stackSave();
-        cArgs[i] = converter(args[i]);
-      } else {
-        cArgs[i] = args[i];
-      }
-    }
-  }
-  // Data for a previous async operation that was in flight before us.
-  var previousAsync = Asyncify.currData;
-  var ret = func(...cArgs);
-  function onDone(ret) {
-    runtimeKeepalivePop();
-    if (stack !== 0) stackRestore(stack);
-    return convertReturnValue(ret);
-  }
-  var asyncMode = opts?.async;
-  // Keep the runtime alive through all calls. Note that this call might not be
-  // async, but for simplicity we push and pop in all calls.
-  runtimeKeepalivePush();
-  if (Asyncify.currData != previousAsync) {
-    // A change in async operation happened. If there was already an async
-    // operation in flight before us, that is an error: we should not start
-    // another async operation while one is active, and we should not stop one
-    // either. The only valid combination is to have no change in the async
-    // data (so we either had one in flight and left it alone, or we didn't have
-    // one), or to have nothing in flight and to start one.
-    assert(!(previousAsync && Asyncify.currData), "We cannot start an async operation when one is already flight");
-    assert(!(previousAsync && !Asyncify.currData), "We cannot stop an async operation in flight");
-    // This is a new async operation. The wasm is paused and has unwound its stack.
-    // We need to return a Promise that resolves the return value
-    // once the stack is rewound and execution finishes.
-    assert(asyncMode, "The call to " + ident + " is running asynchronously. If this was intended, add the async option to the ccall/cwrap call.");
-    return Asyncify.whenDone().then(onDone);
-  }
-  ret = onDone(ret);
-  // If this is an async ccall, ensure we return a promise
-  if (asyncMode) return Promise.resolve(ret);
   return ret;
 };
 
@@ -7174,7 +6376,7 @@ init_emval();
 // either synchronously or asynchronously from other threads in postMessage()d
 // or internally queued events. This way a pthread in a Worker can synchronously
 // access e.g. the DOM on the main thread.
-var proxiedFunctionTable = [ _proc_exit, exitOnMainThread, ___syscall__newselect, ___syscall_chmod, ___syscall_faccessat, ___syscall_fcntl64, ___syscall_fstat64, ___syscall_ftruncate64, ___syscall_ioctl, ___syscall_lstat64, ___syscall_mkdirat, ___syscall_newfstatat, ___syscall_openat, ___syscall_pipe, ___syscall_poll, ___syscall_renameat, ___syscall_rmdir, ___syscall_stat64, ___syscall_unlinkat, __mmap_js, __munmap_js, _environ_get, _environ_sizes_get, _fd_close, _fd_fdstat_get, _fd_read, _fd_seek, _fd_sync, _fd_write ];
+var proxiedFunctionTable = [ _proc_exit, exitOnMainThread, ___syscall_fcntl64, ___syscall_pipe, ___syscall_poll, _environ_get, _environ_sizes_get, _fd_close, _fd_read, _fd_seek, _fd_write ];
 
 function checkIncomingModuleAPI() {
   ignoredModuleProp("fetchSettings");
@@ -7186,25 +6388,10 @@ function assignWasmImports() {
   wasmImports = {
     /** @export */ __assert_fail: ___assert_fail,
     /** @export */ __asyncjs__em_libusb_wait_async,
-    /** @export */ __call_sighandler: ___call_sighandler,
     /** @export */ __cxa_throw: ___cxa_throw,
-    /** @export */ __syscall__newselect: ___syscall__newselect,
-    /** @export */ __syscall_chmod: ___syscall_chmod,
-    /** @export */ __syscall_faccessat: ___syscall_faccessat,
     /** @export */ __syscall_fcntl64: ___syscall_fcntl64,
-    /** @export */ __syscall_fstat64: ___syscall_fstat64,
-    /** @export */ __syscall_ftruncate64: ___syscall_ftruncate64,
-    /** @export */ __syscall_ioctl: ___syscall_ioctl,
-    /** @export */ __syscall_lstat64: ___syscall_lstat64,
-    /** @export */ __syscall_mkdirat: ___syscall_mkdirat,
-    /** @export */ __syscall_newfstatat: ___syscall_newfstatat,
-    /** @export */ __syscall_openat: ___syscall_openat,
     /** @export */ __syscall_pipe: ___syscall_pipe,
     /** @export */ __syscall_poll: ___syscall_poll,
-    /** @export */ __syscall_renameat: ___syscall_renameat,
-    /** @export */ __syscall_rmdir: ___syscall_rmdir,
-    /** @export */ __syscall_stat64: ___syscall_stat64,
-    /** @export */ __syscall_unlinkat: ___syscall_unlinkat,
     /** @export */ _abort_js: __abort_js,
     /** @export */ _embind_register_bigint: __embind_register_bigint,
     /** @export */ _embind_register_bool: __embind_register_bool,
@@ -7219,7 +6406,6 @@ function assignWasmImports() {
     /** @export */ _emscripten_init_main_thread_js: __emscripten_init_main_thread_js,
     /** @export */ _emscripten_notify_mailbox_postmessage: __emscripten_notify_mailbox_postmessage,
     /** @export */ _emscripten_receive_on_main_thread_js: __emscripten_receive_on_main_thread_js,
-    /** @export */ _emscripten_runtime_keepalive_clear: __emscripten_runtime_keepalive_clear,
     /** @export */ _emscripten_thread_cleanup: __emscripten_thread_cleanup,
     /** @export */ _emscripten_thread_mailbox_await: __emscripten_thread_mailbox_await,
     /** @export */ _emscripten_thread_set_strongref: __emscripten_thread_set_strongref,
@@ -7241,32 +6427,19 @@ function assignWasmImports() {
     /** @export */ _emval_run_destructors: __emval_run_destructors,
     /** @export */ _emval_set_property: __emval_set_property,
     /** @export */ _emval_take_value: __emval_take_value,
-    /** @export */ _gmtime_js: __gmtime_js,
-    /** @export */ _localtime_js: __localtime_js,
-    /** @export */ _mktime_js: __mktime_js,
-    /** @export */ _mmap_js: __mmap_js,
-    /** @export */ _munmap_js: __munmap_js,
-    /** @export */ _timegm_js: __timegm_js,
-    /** @export */ _tzset_js: __tzset_js,
     /** @export */ emscripten_check_blocking_allowed: _emscripten_check_blocking_allowed,
     /** @export */ emscripten_date_now: _emscripten_date_now,
-    /** @export */ emscripten_err: _emscripten_err,
     /** @export */ emscripten_exit_with_live_runtime: _emscripten_exit_with_live_runtime,
-    /** @export */ emscripten_get_heap_max: _emscripten_get_heap_max,
     /** @export */ emscripten_get_now: _emscripten_get_now,
-    /** @export */ emscripten_num_logical_cores: _emscripten_num_logical_cores,
     /** @export */ emscripten_resize_heap: _emscripten_resize_heap,
     /** @export */ environ_get: _environ_get,
     /** @export */ environ_sizes_get: _environ_sizes_get,
     /** @export */ exit: _exit,
     /** @export */ fd_close: _fd_close,
-    /** @export */ fd_fdstat_get: _fd_fdstat_get,
     /** @export */ fd_read: _fd_read,
     /** @export */ fd_seek: _fd_seek,
-    /** @export */ fd_sync: _fd_sync,
     /** @export */ fd_write: _fd_write,
     /** @export */ memory: wasmMemory,
-    /** @export */ proc_exit: _proc_exit,
     /** @export */ usbi_em_copy_from_dataview,
     /** @export */ usbi_em_device_safe_open_close,
     /** @export */ usbi_em_promise_catch
@@ -7277,15 +6450,11 @@ var wasmExports = createWasm();
 
 var ___wasm_call_ctors = createExportWrapper("__wasm_call_ctors", 0);
 
-var _gpg_cli_main = Module["_gpg_cli_main"] = createExportWrapper("gpg_cli_main", 2);
-
-var _strerror = createExportWrapper("strerror", 1);
+var _main = Module["_main"] = createExportWrapper("__main_argc_argv", 2);
 
 var _free = createExportWrapper("free", 1);
 
-var _fflush = createExportWrapper("fflush", 1);
-
-var _malloc = Module["_malloc"] = createExportWrapper("malloc", 1);
+var _malloc = createExportWrapper("malloc", 1);
 
 var _pthread_self = () => (_pthread_self = wasmExports["pthread_self"])();
 
@@ -7299,11 +6468,11 @@ var __emval_coro_resume = createExportWrapper("_emval_coro_resume", 2);
 
 var __emscripten_tls_init = createExportWrapper("_emscripten_tls_init", 0);
 
-var _emscripten_builtin_memalign = createExportWrapper("emscripten_builtin_memalign", 2);
-
 var __emscripten_thread_init = createExportWrapper("_emscripten_thread_init", 6);
 
 var __emscripten_thread_crashed = createExportWrapper("_emscripten_thread_crashed", 0);
+
+var _fflush = createExportWrapper("fflush", 1);
 
 var _emscripten_main_thread_process_queued_calls = createExportWrapper("emscripten_main_thread_process_queued_calls", 0);
 
@@ -7317,9 +6486,9 @@ var __emscripten_thread_free_data = createExportWrapper("_emscripten_thread_free
 
 var __emscripten_thread_exit = createExportWrapper("_emscripten_thread_exit", 1);
 
-var __emscripten_check_mailbox = createExportWrapper("_emscripten_check_mailbox", 0);
+var _strerror = createExportWrapper("strerror", 1);
 
-var __emscripten_tempret_set = createExportWrapper("_emscripten_tempret_set", 1);
+var __emscripten_check_mailbox = createExportWrapper("_emscripten_check_mailbox", 0);
 
 var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports["emscripten_stack_init"])();
 
@@ -7333,33 +6502,19 @@ var __emscripten_stack_alloc = a0 => (__emscripten_stack_alloc = wasmExports["_e
 
 var _emscripten_stack_get_current = () => (_emscripten_stack_get_current = wasmExports["emscripten_stack_get_current"])();
 
-var dynCall_ii = Module["dynCall_ii"] = createExportWrapper("dynCall_ii", 2);
-
-var dynCall_iiiiii = Module["dynCall_iiiiii"] = createExportWrapper("dynCall_iiiiii", 6);
-
 var dynCall_vi = Module["dynCall_vi"] = createExportWrapper("dynCall_vi", 2);
-
-var dynCall_iiii = Module["dynCall_iiii"] = createExportWrapper("dynCall_iiii", 4);
-
-var dynCall_iii = Module["dynCall_iii"] = createExportWrapper("dynCall_iii", 3);
 
 var dynCall_vii = Module["dynCall_vii"] = createExportWrapper("dynCall_vii", 3);
 
-var dynCall_iiiiijii = Module["dynCall_iiiiijii"] = createExportWrapper("dynCall_iiiiijii", 9);
+var dynCall_ii = Module["dynCall_ii"] = createExportWrapper("dynCall_ii", 2);
 
-var dynCall_iiiiiiiii = Module["dynCall_iiiiiiiii"] = createExportWrapper("dynCall_iiiiiiiii", 9);
+var dynCall_iii = Module["dynCall_iii"] = createExportWrapper("dynCall_iii", 3);
 
-var dynCall_iiiiiiii = Module["dynCall_iiiiiiii"] = createExportWrapper("dynCall_iiiiiiii", 8);
-
-var dynCall_iiiiiii = Module["dynCall_iiiiiii"] = createExportWrapper("dynCall_iiiiiii", 7);
+var dynCall_iiii = Module["dynCall_iiii"] = createExportWrapper("dynCall_iiii", 4);
 
 var dynCall_iiiii = Module["dynCall_iiiii"] = createExportWrapper("dynCall_iiiii", 5);
 
-var dynCall_iiiiiiiiii = Module["dynCall_iiiiiiiiii"] = createExportWrapper("dynCall_iiiiiiiiii", 10);
-
 var dynCall_v = Module["dynCall_v"] = createExportWrapper("dynCall_v", 1);
-
-var dynCall_viii = Module["dynCall_viii"] = createExportWrapper("dynCall_viii", 4);
 
 var dynCall_jiji = Module["dynCall_jiji"] = createExportWrapper("dynCall_jiji", 5);
 
@@ -7381,25 +6536,11 @@ var _asyncify_stop_rewind = createExportWrapper("asyncify_stop_rewind", 0);
 
 // include: postamble.js
 // === Auto-generated postamble setup entry stuff ===
-Module["ccall"] = ccall;
-
-Module["setValue"] = setValue;
-
-Module["getValue"] = getValue;
-
-Module["UTF8ToString"] = UTF8ToString;
-
-Module["stringToUTF8"] = stringToUTF8;
-
-Module["lengthBytesUTF8"] = lengthBytesUTF8;
-
-Module["FS"] = FS;
-
-var missingLibrarySymbols = [ "writeI53ToI64", "writeI53ToI64Clamped", "writeI53ToI64Signaling", "writeI53ToU64Clamped", "writeI53ToU64Signaling", "readI53FromI64", "readI53FromU64", "convertI32PairToI53", "convertU32PairToI53", "getTempRet0", "inetPton4", "inetNtop4", "inetPton6", "inetNtop6", "readSockaddr", "writeSockaddr", "emscriptenLog", "readEmAsmArgs", "jstoi_q", "listenOnce", "autoResumeAudioContext", "dynCallLegacy", "getDynCaller", "dynCall", "asmjsMangle", "HandleAllocator", "getNativeTypeSize", "STACK_SIZE", "STACK_ALIGN", "POINTER_SIZE", "ASSERTIONS", "cwrap", "uleb128Encode", "generateFuncType", "convertJsFunctionToWasm", "getEmptyTableSlot", "updateTableMap", "getFunctionAddress", "addFunction", "removeFunction", "reallyNegative", "unSign", "strLen", "reSign", "formatString", "intArrayToString", "AsciiToString", "stringToNewUTF8", "registerKeyEventCallback", "maybeCStringToJsString", "findEventTarget", "getBoundingClientRect", "fillMouseEventData", "registerMouseEventCallback", "registerWheelEventCallback", "registerUiEventCallback", "registerFocusEventCallback", "fillDeviceOrientationEventData", "registerDeviceOrientationEventCallback", "fillDeviceMotionEventData", "registerDeviceMotionEventCallback", "screenOrientation", "fillOrientationChangeEventData", "registerOrientationChangeEventCallback", "fillFullscreenChangeEventData", "registerFullscreenChangeEventCallback", "JSEvents_requestFullscreen", "JSEvents_resizeCanvasForFullscreen", "registerRestoreOldStyle", "hideEverythingExceptGivenElement", "restoreHiddenElements", "setLetterbox", "softFullscreenResizeWebGLRenderTarget", "doRequestFullscreen", "fillPointerlockChangeEventData", "registerPointerlockChangeEventCallback", "registerPointerlockErrorEventCallback", "requestPointerLock", "fillVisibilityChangeEventData", "registerVisibilityChangeEventCallback", "registerTouchEventCallback", "fillGamepadEventData", "registerGamepadEventCallback", "registerBeforeUnloadEventCallback", "fillBatteryEventData", "battery", "registerBatteryEventCallback", "setCanvasElementSizeCallingThread", "setCanvasElementSizeMainThread", "setCanvasElementSize", "getCanvasSizeCallingThread", "getCanvasSizeMainThread", "getCanvasElementSize", "jsStackTrace", "getCallstack", "convertPCtoSourceLocation", "checkWasiClock", "wasiRightsToMuslOFlags", "wasiOFlagsToMuslOFlags", "createDyncallWrapper", "safeSetTimeout", "setImmediateWrapped", "clearImmediateWrapped", "polyfillSetImmediate", "registerPostMainLoop", "registerPreMainLoop", "getPromise", "makePromise", "idsToPromises", "makePromiseCallback", "findMatchingCatch", "Browser_asyncPrepareDataCounter", "safeRequestAnimationFrame", "arraySum", "addDays", "getSocketFromFD", "getSocketAddress", "FS_unlink", "FS_mkdirTree", "_setNetworkCallback", "heapObjectForWebGLType", "toTypedArrayIndex", "webgl_enable_ANGLE_instanced_arrays", "webgl_enable_OES_vertex_array_object", "webgl_enable_WEBGL_draw_buffers", "webgl_enable_WEBGL_multi_draw", "webgl_enable_EXT_polygon_offset_clamp", "webgl_enable_EXT_clip_control", "webgl_enable_WEBGL_polygon_mode", "emscriptenWebGLGet", "computeUnpackAlignedImageSize", "colorChannelsInGlTextureFormat", "emscriptenWebGLGetTexPixelData", "emscriptenWebGLGetUniform", "webglGetUniformLocation", "webglPrepareUniformLocationsBeforeFirstUse", "webglGetLeftBracePos", "emscriptenWebGLGetVertexAttrib", "__glGetActiveAttribOrUniform", "writeGLArray", "emscripten_webgl_destroy_context_before_on_calling_thread", "registerWebGlEventCallback", "ALLOC_NORMAL", "ALLOC_STACK", "allocate", "writeStringToMemory", "writeAsciiToMemory", "setErrNo", "demangle", "stackTrace", "getFunctionName", "getFunctionArgsName", "heap32VectorToArray", "usesDestructorStack", "createJsInvokerSignature", "checkArgCount", "getRequiredArgCount", "createJsInvoker", "throwUnboundTypeError", "ensureOverloadTable", "exposePublicSymbol", "replacePublicSymbol", "extendError", "getBasestPointer", "registerInheritedInstance", "unregisterInheritedInstance", "getInheritedInstance", "getInheritedInstanceCount", "getLiveInheritedInstances", "enumReadValueFromPointer", "craftInvokerFunction", "embind__requireFunction", "genericPointerToWireType", "constNoSmartPtrRawPointerToWireType", "nonConstNoSmartPtrRawPointerToWireType", "init_RegisteredPointer", "RegisteredPointer", "RegisteredPointer_fromWireType", "runDestructor", "releaseClassHandle", "detachFinalizer", "attachFinalizer", "makeClassHandle", "init_ClassHandle", "ClassHandle", "throwInstanceAlreadyDeleted", "flushPendingDeletes", "setDelayFunction", "RegisteredClass", "shallowCopyInternalPointer", "downcastPointer", "upcastPointer", "validateThis", "char_0", "char_9", "makeLegalFunctionName" ];
+var missingLibrarySymbols = [ "writeI53ToI64", "writeI53ToI64Clamped", "writeI53ToI64Signaling", "writeI53ToU64Clamped", "writeI53ToU64Signaling", "readI53FromI64", "readI53FromU64", "convertI32PairToI53", "convertU32PairToI53", "getTempRet0", "setTempRet0", "inetPton4", "inetNtop4", "inetPton6", "inetNtop6", "readSockaddr", "writeSockaddr", "emscriptenLog", "readEmAsmArgs", "jstoi_q", "listenOnce", "autoResumeAudioContext", "dynCallLegacy", "getDynCaller", "dynCall", "asmjsMangle", "HandleAllocator", "getNativeTypeSize", "STACK_SIZE", "STACK_ALIGN", "POINTER_SIZE", "ASSERTIONS", "getCFunc", "ccall", "cwrap", "uleb128Encode", "generateFuncType", "convertJsFunctionToWasm", "getEmptyTableSlot", "updateTableMap", "getFunctionAddress", "addFunction", "removeFunction", "reallyNegative", "unSign", "strLen", "reSign", "formatString", "intArrayToString", "AsciiToString", "stringToNewUTF8", "writeArrayToMemory", "registerKeyEventCallback", "maybeCStringToJsString", "findEventTarget", "getBoundingClientRect", "fillMouseEventData", "registerMouseEventCallback", "registerWheelEventCallback", "registerUiEventCallback", "registerFocusEventCallback", "fillDeviceOrientationEventData", "registerDeviceOrientationEventCallback", "fillDeviceMotionEventData", "registerDeviceMotionEventCallback", "screenOrientation", "fillOrientationChangeEventData", "registerOrientationChangeEventCallback", "fillFullscreenChangeEventData", "registerFullscreenChangeEventCallback", "JSEvents_requestFullscreen", "JSEvents_resizeCanvasForFullscreen", "registerRestoreOldStyle", "hideEverythingExceptGivenElement", "restoreHiddenElements", "setLetterbox", "softFullscreenResizeWebGLRenderTarget", "doRequestFullscreen", "fillPointerlockChangeEventData", "registerPointerlockChangeEventCallback", "registerPointerlockErrorEventCallback", "requestPointerLock", "fillVisibilityChangeEventData", "registerVisibilityChangeEventCallback", "registerTouchEventCallback", "fillGamepadEventData", "registerGamepadEventCallback", "registerBeforeUnloadEventCallback", "fillBatteryEventData", "battery", "registerBatteryEventCallback", "setCanvasElementSizeCallingThread", "setCanvasElementSizeMainThread", "setCanvasElementSize", "getCanvasSizeCallingThread", "getCanvasSizeMainThread", "getCanvasElementSize", "jsStackTrace", "getCallstack", "convertPCtoSourceLocation", "checkWasiClock", "wasiRightsToMuslOFlags", "wasiOFlagsToMuslOFlags", "createDyncallWrapper", "safeSetTimeout", "setImmediateWrapped", "clearImmediateWrapped", "polyfillSetImmediate", "registerPostMainLoop", "registerPreMainLoop", "getPromise", "makePromise", "idsToPromises", "makePromiseCallback", "findMatchingCatch", "Browser_asyncPrepareDataCounter", "safeRequestAnimationFrame", "isLeapYear", "ydayFromDate", "arraySum", "addDays", "getSocketFromFD", "getSocketAddress", "FS_unlink", "FS_mkdirTree", "_setNetworkCallback", "heapObjectForWebGLType", "toTypedArrayIndex", "webgl_enable_ANGLE_instanced_arrays", "webgl_enable_OES_vertex_array_object", "webgl_enable_WEBGL_draw_buffers", "webgl_enable_WEBGL_multi_draw", "webgl_enable_EXT_polygon_offset_clamp", "webgl_enable_EXT_clip_control", "webgl_enable_WEBGL_polygon_mode", "emscriptenWebGLGet", "computeUnpackAlignedImageSize", "colorChannelsInGlTextureFormat", "emscriptenWebGLGetTexPixelData", "emscriptenWebGLGetUniform", "webglGetUniformLocation", "webglPrepareUniformLocationsBeforeFirstUse", "webglGetLeftBracePos", "emscriptenWebGLGetVertexAttrib", "__glGetActiveAttribOrUniform", "writeGLArray", "emscripten_webgl_destroy_context_before_on_calling_thread", "registerWebGlEventCallback", "ALLOC_NORMAL", "ALLOC_STACK", "allocate", "writeStringToMemory", "writeAsciiToMemory", "setErrNo", "demangle", "stackTrace", "getFunctionName", "getFunctionArgsName", "heap32VectorToArray", "usesDestructorStack", "createJsInvokerSignature", "checkArgCount", "getRequiredArgCount", "createJsInvoker", "throwUnboundTypeError", "ensureOverloadTable", "exposePublicSymbol", "replacePublicSymbol", "extendError", "getBasestPointer", "registerInheritedInstance", "unregisterInheritedInstance", "getInheritedInstance", "getInheritedInstanceCount", "getLiveInheritedInstances", "enumReadValueFromPointer", "craftInvokerFunction", "embind__requireFunction", "genericPointerToWireType", "constNoSmartPtrRawPointerToWireType", "nonConstNoSmartPtrRawPointerToWireType", "init_RegisteredPointer", "RegisteredPointer", "RegisteredPointer_fromWireType", "runDestructor", "releaseClassHandle", "detachFinalizer", "attachFinalizer", "makeClassHandle", "init_ClassHandle", "ClassHandle", "throwInstanceAlreadyDeleted", "flushPendingDeletes", "setDelayFunction", "RegisteredClass", "shallowCopyInternalPointer", "downcastPointer", "upcastPointer", "validateThis", "char_0", "char_9", "makeLegalFunctionName" ];
 
 missingLibrarySymbols.forEach(missingLibrarySymbol);
 
-var unexportedSymbols = [ "run", "addOnPreRun", "addOnInit", "addOnPreMain", "addOnExit", "addOnPostRun", "addRunDependency", "removeRunDependency", "out", "err", "callMain", "abort", "wasmMemory", "wasmExports", "GROWABLE_HEAP_I8", "GROWABLE_HEAP_U8", "GROWABLE_HEAP_I16", "GROWABLE_HEAP_U16", "GROWABLE_HEAP_I32", "GROWABLE_HEAP_U32", "GROWABLE_HEAP_F32", "GROWABLE_HEAP_F64", "writeStackCookie", "checkStackCookie", "convertI32PairToI53Checked", "stackSave", "stackRestore", "stackAlloc", "setTempRet0", "ptrToString", "zeroMemory", "exitJS", "getHeapMax", "growMemory", "ENV", "ERRNO_CODES", "strError", "DNS", "Protocols", "Sockets", "timers", "warnOnce", "readEmAsmArgsArray", "jstoi_s", "getExecutableName", "handleException", "keepRuntimeAlive", "runtimeKeepalivePush", "runtimeKeepalivePop", "callUserCallback", "maybeExit", "asyncLoad", "alignMemory", "mmapAlloc", "wasmTable", "noExitRuntime", "getCFunc", "sigToWasmTypes", "freeTableIndexes", "functionsInTableMap", "PATH", "PATH_FS", "UTF8Decoder", "UTF8ArrayToString", "stringToUTF8Array", "intArrayFromString", "stringToAscii", "UTF16Decoder", "UTF16ToString", "stringToUTF16", "lengthBytesUTF16", "UTF32ToString", "stringToUTF32", "lengthBytesUTF32", "stringToUTF8OnStack", "writeArrayToMemory", "JSEvents", "specialHTMLTargets", "findCanvasEventTarget", "currentFullscreenStrategy", "restoreOldWindowedStyle", "UNWIND_CACHE", "ExitStatus", "getEnvStrings", "doReadv", "doWritev", "initRandomFill", "randomFill", "promiseMap", "uncaughtExceptionCount", "exceptionLast", "exceptionCaught", "ExceptionInfo", "Browser", "getPreloadedImageData__data", "wget", "MONTH_DAYS_REGULAR", "MONTH_DAYS_LEAP", "MONTH_DAYS_REGULAR_CUMULATIVE", "MONTH_DAYS_LEAP_CUMULATIVE", "isLeapYear", "ydayFromDate", "SYSCALLS", "preloadPlugins", "FS_createPreloadedFile", "FS_modeStringToFlags", "FS_getMode", "FS_stdin_getChar_buffer", "FS_stdin_getChar", "FS_createPath", "FS_createDevice", "FS_readFile", "FS_createDataFile", "FS_createLazyFile", "MEMFS", "TTY", "PIPEFS", "SOCKFS", "tempFixedLengthArray", "miniTempWebGLFloatBuffers", "miniTempWebGLIntBuffers", "GL", "AL", "GLUT", "EGL", "GLEW", "IDBStore", "runAndAbortIfError", "Asyncify", "Fibers", "SDL", "SDL_gfx", "allocateUTF8", "allocateUTF8OnStack", "print", "printErr", "PThread", "terminateWorker", "cleanupThread", "registerTLSInit", "spawnThread", "exitOnMainThread", "proxyToMainThread", "proxiedJSCallArgs", "invokeEntryPoint", "checkMailbox", "InternalError", "BindingError", "throwInternalError", "throwBindingError", "registeredTypes", "awaitingDependencies", "typeDependencies", "tupleRegistrations", "structRegistrations", "sharedRegisterType", "whenDependentTypesAreResolved", "embind_charCodes", "embind_init_charCodes", "readLatin1String", "getTypeName", "requireRegisteredType", "UnboundTypeError", "PureVirtualError", "GenericWireTypeSize", "EmValType", "EmValOptionalType", "createNamedFunction", "embindRepr", "registeredInstances", "registeredPointers", "registerType", "integerReadValueFromPointer", "floatReadValueFromPointer", "readPointer", "runDestructors", "newFunc", "finalizationRegistry", "detachFinalizer_deps", "deletionQueue", "delayFunction", "emval_freelist", "emval_handles", "emval_symbols", "init_emval", "count_emval_handles", "getStringOrSymbol", "Emval", "emval_get_global", "emval_returnValue", "emval_lookupTypes", "emval_methodCallers", "emval_addMethodCaller", "reflectConstruct" ];
+var unexportedSymbols = [ "run", "addOnPreRun", "addOnInit", "addOnPreMain", "addOnExit", "addOnPostRun", "addRunDependency", "removeRunDependency", "out", "err", "callMain", "abort", "wasmMemory", "wasmExports", "GROWABLE_HEAP_I8", "GROWABLE_HEAP_U8", "GROWABLE_HEAP_I16", "GROWABLE_HEAP_U16", "GROWABLE_HEAP_I32", "GROWABLE_HEAP_U32", "GROWABLE_HEAP_F32", "GROWABLE_HEAP_F64", "writeStackCookie", "checkStackCookie", "convertI32PairToI53Checked", "stackSave", "stackRestore", "stackAlloc", "ptrToString", "zeroMemory", "exitJS", "getHeapMax", "growMemory", "ENV", "ERRNO_CODES", "strError", "DNS", "Protocols", "Sockets", "timers", "warnOnce", "readEmAsmArgsArray", "jstoi_s", "getExecutableName", "handleException", "keepRuntimeAlive", "runtimeKeepalivePush", "runtimeKeepalivePop", "callUserCallback", "maybeExit", "asyncLoad", "alignMemory", "mmapAlloc", "wasmTable", "noExitRuntime", "sigToWasmTypes", "freeTableIndexes", "functionsInTableMap", "setValue", "getValue", "PATH", "PATH_FS", "UTF8Decoder", "UTF8ArrayToString", "UTF8ToString", "stringToUTF8Array", "stringToUTF8", "lengthBytesUTF8", "intArrayFromString", "stringToAscii", "UTF16Decoder", "UTF16ToString", "stringToUTF16", "lengthBytesUTF16", "UTF32ToString", "stringToUTF32", "lengthBytesUTF32", "stringToUTF8OnStack", "JSEvents", "specialHTMLTargets", "findCanvasEventTarget", "currentFullscreenStrategy", "restoreOldWindowedStyle", "UNWIND_CACHE", "ExitStatus", "getEnvStrings", "doReadv", "doWritev", "initRandomFill", "randomFill", "promiseMap", "uncaughtExceptionCount", "exceptionLast", "exceptionCaught", "ExceptionInfo", "Browser", "getPreloadedImageData__data", "wget", "MONTH_DAYS_REGULAR", "MONTH_DAYS_LEAP", "MONTH_DAYS_REGULAR_CUMULATIVE", "MONTH_DAYS_LEAP_CUMULATIVE", "SYSCALLS", "preloadPlugins", "FS_createPreloadedFile", "FS_modeStringToFlags", "FS_getMode", "FS_stdin_getChar_buffer", "FS_stdin_getChar", "FS_createPath", "FS_createDevice", "FS_readFile", "FS", "FS_createDataFile", "FS_createLazyFile", "MEMFS", "TTY", "PIPEFS", "SOCKFS", "tempFixedLengthArray", "miniTempWebGLFloatBuffers", "miniTempWebGLIntBuffers", "GL", "AL", "GLUT", "EGL", "GLEW", "IDBStore", "runAndAbortIfError", "Asyncify", "Fibers", "SDL", "SDL_gfx", "allocateUTF8", "allocateUTF8OnStack", "print", "printErr", "PThread", "terminateWorker", "cleanupThread", "registerTLSInit", "spawnThread", "exitOnMainThread", "proxyToMainThread", "proxiedJSCallArgs", "invokeEntryPoint", "checkMailbox", "InternalError", "BindingError", "throwInternalError", "throwBindingError", "registeredTypes", "awaitingDependencies", "typeDependencies", "tupleRegistrations", "structRegistrations", "sharedRegisterType", "whenDependentTypesAreResolved", "embind_charCodes", "embind_init_charCodes", "readLatin1String", "getTypeName", "requireRegisteredType", "UnboundTypeError", "PureVirtualError", "GenericWireTypeSize", "EmValType", "EmValOptionalType", "createNamedFunction", "embindRepr", "registeredInstances", "registeredPointers", "registerType", "integerReadValueFromPointer", "floatReadValueFromPointer", "readPointer", "runDestructors", "newFunc", "finalizationRegistry", "detachFinalizer_deps", "deletionQueue", "delayFunction", "emval_freelist", "emval_handles", "emval_symbols", "init_emval", "count_emval_handles", "getStringOrSymbol", "Emval", "emval_get_global", "emval_returnValue", "emval_lookupTypes", "emval_methodCallers", "emval_addMethodCaller", "reflectConstruct" ];
 
 unexportedSymbols.forEach(unexportedRuntimeSymbol);
 
@@ -7412,6 +6553,29 @@ dependenciesFulfilled = function runCaller() {
 };
 
 // try this again later, after new deps are fulfilled
+function callMain(args = []) {
+  assert(runDependencies == 0, 'cannot call main when async dependencies remain! (listen on Module["onRuntimeInitialized"])');
+  assert(__ATPRERUN__.length == 0, "cannot call main when preRun functions remain to be called");
+  var entryFunction = _main;
+  args.unshift(thisProgram);
+  var argc = args.length;
+  var argv = stackAlloc((argc + 1) * 4);
+  var argv_ptr = argv;
+  args.forEach(arg => {
+    GROWABLE_HEAP_U32()[((argv_ptr) >> 2)] = stringToUTF8OnStack(arg);
+    argv_ptr += 4;
+  });
+  GROWABLE_HEAP_U32()[((argv_ptr) >> 2)] = 0;
+  try {
+    var ret = entryFunction(argc, argv);
+    // if we're not running an evented main loop, it's time to exit
+    exitJS(ret, /* implicit = */ true);
+    return ret;
+  } catch (e) {
+    return handleException(e);
+  }
+}
+
 function stackCheckInit() {
   // This is normally called automatically during __wasm_call_ctors but need to
   // get these values before even running any of the ctors so we call it redundantly
@@ -7423,15 +6587,11 @@ function stackCheckInit() {
   writeStackCookie();
 }
 
-function run() {
+function run(args = arguments_) {
   if (runDependencies > 0) {
     return;
   }
   if (ENVIRONMENT_IS_PTHREAD) {
-    // The promise resolve function typically gets called as part of the execution
-    // of `doRun` below. The workers/pthreads don't execute `doRun` so the
-    // creation promise can be resolved, marking the pthread-Module as initialized.
-    readyPromiseResolve(Module);
     initRuntime();
     startWorker(Module);
     return;
@@ -7450,9 +6610,9 @@ function run() {
     Module["calledRun"] = true;
     if (ABORT) return;
     initRuntime();
-    readyPromiseResolve(Module);
+    preMain();
     Module["onRuntimeInitialized"]?.();
-    assert(!Module["_main"], 'compiled without a main, but one is present. if you added it from JS, use Module["onRuntimeInitialized"]');
+    if (shouldRunNow) callMain(args);
     postRun();
   }
   if (Module["setStatus"]) {
@@ -7514,44 +6674,9 @@ if (Module["preInit"]) {
   }
 }
 
+// shouldRunNow refers to calling main(), not run().
+var shouldRunNow = true;
+
+if (Module["noInitialRun"]) shouldRunNow = false;
+
 run();
-
-// end include: postamble.js
-// include: postamble_modularize.js
-// In MODULARIZE mode we wrap the generated code in a factory function
-// and return either the Module itself, or a promise of the module.
-// We assign to the `moduleRtn` global here and configure closure to see
-// this as and extern so it won't get minified.
-moduleRtn = readyPromise;
-
-// Assertion for attempting to access module properties on the incoming
-// moduleArg.  In the past we used this object as the prototype of the module
-// and assigned properties to it, but now we return a distinct object.  This
-// keeps the instance private until it is ready (i.e the promise has been
-// resolved).
-for (const prop of Object.keys(Module)) {
-  if (!(prop in moduleArg)) {
-    Object.defineProperty(moduleArg, prop, {
-      configurable: true,
-      get() {
-        abort(`Access to module property ('${prop}') is no longer possible via the module constructor argument; Instead, use the result of the module constructor.`);
-      }
-    });
-  }
-}
-
-
-  return moduleRtn;
-}
-);
-})();
-if (typeof exports === 'object' && typeof module === 'object')
-  module.exports = gpg;
-else if (typeof define === 'function' && define['amd'])
-  define([], () => gpg);
-var isPthread = globalThis.self?.name?.startsWith('em-pthread');
-var isNode = typeof globalThis.process?.versions?.node == 'string';
-if (isNode) isPthread = require('worker_threads').workerData === 'em-pthread'
-
-// When running as a pthread, construct a new instance on startup
-isPthread && gpg();

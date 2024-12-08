@@ -1,0 +1,22 @@
+#!/bin/env python3
+import http.server
+
+PORT = 8791
+
+
+class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def send_response_only(self, code, message=None):
+        super().send_response_only(code, message)
+        headers = {
+            "Cross-Origin-Embedder-Policy": "require-corp",
+            "Cross-Origin-Opener-Policy": "same-origin",
+            "Cache-Control": "no-store, must-revalidate",
+        }
+        for k, v in headers.items():
+            self.send_header(k, v)
+
+
+if __name__ == "__main__":
+    http.server.test(
+        HandlerClass=NoCacheHTTPRequestHandler, bind="127.0.0.1", port=PORT
+    )

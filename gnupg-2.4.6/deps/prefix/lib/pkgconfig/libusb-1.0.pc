@@ -1,11 +1,11 @@
-prefix=/home/yang/wasm/gnupg-2.4.6/deps/libusb-shared-1.0.27/prefix
+prefix=/home/yang/wasm/gnupg-2.4.6/deps/prefix
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
 Name: libusb-1.0
 Description: C API for USB device access from Linux, Mac OS X, Windows, OpenBSD/NetBSD and Solaris userspace
-Version: 1.0.27
+Version: 1.0.26
 Libs: -L${libdir} -lusb-1.0
 Libs.private:  --bind -s ASYNCIFY
 Cflags: -I${includedir}/libusb-1.0
