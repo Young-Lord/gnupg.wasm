@@ -1950,6 +1950,7 @@ open_ccid_reader (const char *portstr)
   err = ccid_open_reader (&slotp->ccid.handle, portstr);
   if (err)
     {
+      /* printf("LYERRR=%d\n", err);  // CCID_DRIVER_ERR_NO_READER */
       slotp->used = 0;
       return -1;
     }
@@ -2344,6 +2345,7 @@ apdu_open_reader (const char *portstr)
       const char *s;
 
       slot = open_ccid_reader (portstr);
+      printf("LY: ccid test%d\n", slot);
       if (slot != -1)
         return slot; /* got one */
 

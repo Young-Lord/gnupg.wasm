@@ -133,6 +133,32 @@ if (ENVIRONMENT_IS_NODE) {
 // refer to Module (if they choose; they can also define Module)
 // include: /home/yang/wasm/gnupg-1.4.23/g10/bind.js
 // https://github.com/ffmpegwasm/ffmpeg.wasm/blob/main/src/bind/ffmpeg/bind.js
+var logger = function(data) {
+  if (data.type === "stderr") {
+    console.error(data.message);
+  } else {
+    console.log(data.message);
+  }
+};
+
+Module["setLogger"] = function(_logger) {
+  logger = _logger;
+};
+
+Module["print"] = function(message) {
+  logger({
+    message,
+    type: "stdout"
+  });
+};
+
+Module["printErr"] = function(message) {
+  logger({
+    message,
+    type: "stderr"
+  });
+};
+
 const NULL = 0;
 
 const SIZE_I32 = Uint32Array.BYTES_PER_ELEMENT;
@@ -6414,9 +6440,27 @@ var emval_get_global = () => {
   if (typeof globalThis == "object") {
     return globalThis;
   }
-  return (function() {
-    return Function;
-  })()("return this")();
+  function testGlobal(obj) {
+    obj["$$$embind_global$$$"] = obj;
+    var success = typeof $$$embind_global$$$ == "object" && obj["$$$embind_global$$$"] == obj;
+    if (!success) {
+      delete obj["$$$embind_global$$$"];
+    }
+    return success;
+  }
+  if (typeof $$$embind_global$$$ == "object") {
+    return $$$embind_global$$$;
+  }
+  if (typeof global == "object" && testGlobal(global)) {
+    $$$embind_global$$$ = global;
+  } else if (typeof self == "object" && testGlobal(self)) {
+    $$$embind_global$$$ = self;
+  }
+  // This works for both "window" and "self" (Web Workers) global objects
+  if (typeof $$$embind_global$$$ == "object") {
+    return $$$embind_global$$$;
+  }
+  throw Error("unable to get global object.");
 };
 
 var __emval_get_global = name => {
@@ -6448,57 +6492,21 @@ var createNamedFunction = (name, body) => Object.defineProperty(body, "name", {
 
 var reflectConstruct = Reflect.construct;
 
-function newFunc(constructor, argumentList) {
-  if (!(constructor instanceof Function)) {
-    throw new TypeError(`new_ called with constructor type ${typeof (constructor)} which is not a function`);
-  }
-  /*
-       * Previously, the following line was just:
-       *   function dummy() {};
-       * Unfortunately, Chrome was preserving 'dummy' as the object's name, even
-       * though at creation, the 'dummy' has the correct constructor name.  Thus,
-       * objects created with IMVU.new would show up in the debugger as 'dummy',
-       * which isn't very helpful.  Using IMVU.createNamedFunction addresses the
-       * issue.  Doubly-unfortunately, there's no way to write a test for this
-       * behavior.  -NRD 2013.02.22
-       */ var dummy = createNamedFunction(constructor.name || "unknownFunctionName", function() {});
-  dummy.prototype = constructor.prototype;
-  var obj = new dummy;
-  var r = constructor.apply(obj, argumentList);
-  return (r instanceof Object) ? r : obj;
-}
-
 var __emval_get_method_caller = (argCount, argTypes, kind) => {
   var types = emval_lookupTypes(argCount, argTypes);
   var retType = types.shift();
   argCount--;
   // remove the shifted off return type
-  var functionBody = `return function (obj, func, destructorsRef, args) {\n`;
-  var offset = 0;
-  var argsList = [];
-  // 'obj?, arg0, arg1, arg2, ... , argN'
-  if (kind === /* FUNCTION */ 0) {
-    argsList.push("obj");
-  }
-  var params = [ "retType" ];
-  var args = [ retType ];
-  for (var i = 0; i < argCount; ++i) {
-    argsList.push("arg" + i);
-    params.push("argType" + i);
-    args.push(types[i]);
-    functionBody += `  var arg${i} = argType${i}.readValueFromPointer(args${offset ? "+" + offset : ""});\n`;
-    offset += types[i].argPackAdvance;
-  }
-  var invoker = kind === /* CONSTRUCTOR */ 1 ? "new func" : "func.call";
-  functionBody += `  var rv = ${invoker}(${argsList.join(", ")});\n`;
-  if (!retType.isVoid) {
-    params.push("emval_returnValue");
-    args.push(emval_returnValue);
-    functionBody += "  return emval_returnValue(retType, destructorsRef, rv);\n";
-  }
-  functionBody += "};\n";
-  params.push(functionBody);
-  var invokerFunction = newFunc(Function, params)(...args);
+  var argN = new Array(argCount);
+  var invokerFunction = (obj, func, destructorsRef, args) => {
+    var offset = 0;
+    for (var i = 0; i < argCount; ++i) {
+      argN[i] = types[i]["readValueFromPointer"](args + offset);
+      offset += types[i].argPackAdvance;
+    }
+    var rv = kind === /* CONSTRUCTOR */ 1 ? reflectConstruct(func, argN) : func.apply(obj, argN);
+    return emval_returnValue(retType, destructorsRef, rv);
+  };
   var functionName = `methodCaller<(${types.map(t => t.name).join(", ")}) => ${retType.name}>`;
   return emval_addMethodCaller(createNamedFunction(functionName, invokerFunction));
 };
@@ -7399,7 +7407,7 @@ var missingLibrarySymbols = [ "writeI53ToI64", "writeI53ToI64Clamped", "writeI53
 
 missingLibrarySymbols.forEach(missingLibrarySymbol);
 
-var unexportedSymbols = [ "run", "addOnPreRun", "addOnInit", "addOnPreMain", "addOnExit", "addOnPostRun", "addRunDependency", "removeRunDependency", "out", "err", "callMain", "abort", "wasmMemory", "wasmExports", "GROWABLE_HEAP_I8", "GROWABLE_HEAP_U8", "GROWABLE_HEAP_I16", "GROWABLE_HEAP_U16", "GROWABLE_HEAP_I32", "GROWABLE_HEAP_U32", "GROWABLE_HEAP_F32", "GROWABLE_HEAP_F64", "writeStackCookie", "checkStackCookie", "convertI32PairToI53Checked", "stackSave", "stackRestore", "stackAlloc", "setTempRet0", "ptrToString", "zeroMemory", "exitJS", "getHeapMax", "growMemory", "ENV", "ERRNO_CODES", "strError", "DNS", "Protocols", "Sockets", "timers", "warnOnce", "readEmAsmArgsArray", "jstoi_s", "getExecutableName", "handleException", "keepRuntimeAlive", "runtimeKeepalivePush", "runtimeKeepalivePop", "callUserCallback", "maybeExit", "asyncLoad", "alignMemory", "mmapAlloc", "wasmTable", "noExitRuntime", "getCFunc", "sigToWasmTypes", "freeTableIndexes", "functionsInTableMap", "PATH", "PATH_FS", "UTF8Decoder", "UTF8ArrayToString", "stringToUTF8Array", "intArrayFromString", "stringToAscii", "UTF16Decoder", "UTF16ToString", "stringToUTF16", "lengthBytesUTF16", "UTF32ToString", "stringToUTF32", "lengthBytesUTF32", "stringToUTF8OnStack", "writeArrayToMemory", "JSEvents", "specialHTMLTargets", "findCanvasEventTarget", "currentFullscreenStrategy", "restoreOldWindowedStyle", "UNWIND_CACHE", "ExitStatus", "getEnvStrings", "doReadv", "doWritev", "initRandomFill", "randomFill", "promiseMap", "uncaughtExceptionCount", "exceptionLast", "exceptionCaught", "ExceptionInfo", "Browser", "getPreloadedImageData__data", "wget", "MONTH_DAYS_REGULAR", "MONTH_DAYS_LEAP", "MONTH_DAYS_REGULAR_CUMULATIVE", "MONTH_DAYS_LEAP_CUMULATIVE", "isLeapYear", "ydayFromDate", "SYSCALLS", "preloadPlugins", "FS_createPreloadedFile", "FS_modeStringToFlags", "FS_getMode", "FS_stdin_getChar_buffer", "FS_stdin_getChar", "FS_createPath", "FS_createDevice", "FS_readFile", "FS_createDataFile", "FS_createLazyFile", "MEMFS", "TTY", "PIPEFS", "SOCKFS", "tempFixedLengthArray", "miniTempWebGLFloatBuffers", "miniTempWebGLIntBuffers", "GL", "AL", "GLUT", "EGL", "GLEW", "IDBStore", "runAndAbortIfError", "Asyncify", "Fibers", "SDL", "SDL_gfx", "allocateUTF8", "allocateUTF8OnStack", "print", "printErr", "PThread", "terminateWorker", "cleanupThread", "registerTLSInit", "spawnThread", "exitOnMainThread", "proxyToMainThread", "proxiedJSCallArgs", "invokeEntryPoint", "checkMailbox", "InternalError", "BindingError", "throwInternalError", "throwBindingError", "registeredTypes", "awaitingDependencies", "typeDependencies", "tupleRegistrations", "structRegistrations", "sharedRegisterType", "whenDependentTypesAreResolved", "embind_charCodes", "embind_init_charCodes", "readLatin1String", "getTypeName", "requireRegisteredType", "UnboundTypeError", "PureVirtualError", "GenericWireTypeSize", "EmValType", "EmValOptionalType", "createNamedFunction", "embindRepr", "registeredInstances", "registeredPointers", "registerType", "integerReadValueFromPointer", "floatReadValueFromPointer", "readPointer", "runDestructors", "newFunc", "finalizationRegistry", "detachFinalizer_deps", "deletionQueue", "delayFunction", "emval_freelist", "emval_handles", "emval_symbols", "init_emval", "count_emval_handles", "getStringOrSymbol", "Emval", "emval_get_global", "emval_returnValue", "emval_lookupTypes", "emval_methodCallers", "emval_addMethodCaller", "reflectConstruct" ];
+var unexportedSymbols = [ "run", "addOnPreRun", "addOnInit", "addOnPreMain", "addOnExit", "addOnPostRun", "addRunDependency", "removeRunDependency", "out", "err", "callMain", "abort", "wasmMemory", "wasmExports", "GROWABLE_HEAP_I8", "GROWABLE_HEAP_U8", "GROWABLE_HEAP_I16", "GROWABLE_HEAP_U16", "GROWABLE_HEAP_I32", "GROWABLE_HEAP_U32", "GROWABLE_HEAP_F32", "GROWABLE_HEAP_F64", "writeStackCookie", "checkStackCookie", "convertI32PairToI53Checked", "stackSave", "stackRestore", "stackAlloc", "setTempRet0", "ptrToString", "zeroMemory", "exitJS", "getHeapMax", "growMemory", "ENV", "ERRNO_CODES", "strError", "DNS", "Protocols", "Sockets", "timers", "warnOnce", "readEmAsmArgsArray", "jstoi_s", "getExecutableName", "handleException", "keepRuntimeAlive", "runtimeKeepalivePush", "runtimeKeepalivePop", "callUserCallback", "maybeExit", "asyncLoad", "alignMemory", "mmapAlloc", "wasmTable", "noExitRuntime", "getCFunc", "sigToWasmTypes", "freeTableIndexes", "functionsInTableMap", "PATH", "PATH_FS", "UTF8Decoder", "UTF8ArrayToString", "stringToUTF8Array", "intArrayFromString", "stringToAscii", "UTF16Decoder", "UTF16ToString", "stringToUTF16", "lengthBytesUTF16", "UTF32ToString", "stringToUTF32", "lengthBytesUTF32", "stringToUTF8OnStack", "writeArrayToMemory", "JSEvents", "specialHTMLTargets", "findCanvasEventTarget", "currentFullscreenStrategy", "restoreOldWindowedStyle", "UNWIND_CACHE", "ExitStatus", "getEnvStrings", "doReadv", "doWritev", "initRandomFill", "randomFill", "promiseMap", "uncaughtExceptionCount", "exceptionLast", "exceptionCaught", "ExceptionInfo", "Browser", "getPreloadedImageData__data", "wget", "MONTH_DAYS_REGULAR", "MONTH_DAYS_LEAP", "MONTH_DAYS_REGULAR_CUMULATIVE", "MONTH_DAYS_LEAP_CUMULATIVE", "isLeapYear", "ydayFromDate", "SYSCALLS", "preloadPlugins", "FS_createPreloadedFile", "FS_modeStringToFlags", "FS_getMode", "FS_stdin_getChar_buffer", "FS_stdin_getChar", "FS_createPath", "FS_createDevice", "FS_readFile", "FS_createDataFile", "FS_createLazyFile", "MEMFS", "TTY", "PIPEFS", "SOCKFS", "tempFixedLengthArray", "miniTempWebGLFloatBuffers", "miniTempWebGLIntBuffers", "GL", "AL", "GLUT", "EGL", "GLEW", "IDBStore", "runAndAbortIfError", "Asyncify", "Fibers", "SDL", "SDL_gfx", "allocateUTF8", "allocateUTF8OnStack", "print", "printErr", "PThread", "terminateWorker", "cleanupThread", "registerTLSInit", "spawnThread", "exitOnMainThread", "proxyToMainThread", "proxiedJSCallArgs", "invokeEntryPoint", "checkMailbox", "InternalError", "BindingError", "throwInternalError", "throwBindingError", "registeredTypes", "awaitingDependencies", "typeDependencies", "tupleRegistrations", "structRegistrations", "sharedRegisterType", "whenDependentTypesAreResolved", "embind_charCodes", "embind_init_charCodes", "readLatin1String", "getTypeName", "requireRegisteredType", "UnboundTypeError", "PureVirtualError", "GenericWireTypeSize", "EmValType", "EmValOptionalType", "createNamedFunction", "embindRepr", "registeredInstances", "registeredPointers", "registerType", "integerReadValueFromPointer", "floatReadValueFromPointer", "readPointer", "runDestructors", "finalizationRegistry", "detachFinalizer_deps", "deletionQueue", "delayFunction", "emval_freelist", "emval_handles", "emval_symbols", "init_emval", "count_emval_handles", "getStringOrSymbol", "Emval", "emval_get_global", "emval_returnValue", "emval_lookupTypes", "emval_methodCallers", "emval_addMethodCaller", "reflectConstruct" ];
 
 unexportedSymbols.forEach(unexportedRuntimeSymbol);
 

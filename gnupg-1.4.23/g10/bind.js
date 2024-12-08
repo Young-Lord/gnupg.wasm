@@ -1,5 +1,23 @@
 // https://github.com/ffmpegwasm/ffmpeg.wasm/blob/main/src/bind/ffmpeg/bind.js
 
+var logger = function (data) {
+  if (data.type === "stderr") {
+    console.error(data.message);
+  } else {
+    console.log(data.message);
+  }
+};
+
+Module["setLogger"] = function (_logger) {
+  logger = _logger;
+};
+Module["print"] = function (message) {
+  logger({ message, type: "stdout" });
+};
+Module["printErr"] = function (message) {
+  logger({ message, type: "stderr" });
+};
+
 const NULL = 0;
 const SIZE_I32 = Uint32Array.BYTES_PER_ELEMENT;
 const DEFAULT_ARGS = ["gpg"];
